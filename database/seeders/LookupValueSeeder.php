@@ -22,6 +22,10 @@ class LookupValueSeeder extends Seeder
             ->where('code', 'service_type')
             ->value('id');
 
+        $customerTypeTypeId = DB::table('lookup_types')
+            ->where('code', 'customer_type')
+            ->value('id');
+
         DB::table('lookup_values')->insert([
             // Service Call Statuses
             [
@@ -176,6 +180,52 @@ class LookupValueSeeder extends Seeder
                 'name' => 'Mobile EV Charging',
                 'code' => 'mobile_ev_charging',
                 'sort_order' => 6,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            // Customer Types
+            [
+                'company_id' => $companyId,
+                'lookup_type_id' => $customerTypeTypeId,
+                'parent_id' => null,
+                'name' => 'Consumer',
+                'code' => 'consumer',
+                'sort_order' => 1,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'company_id' => $companyId,
+                'lookup_type_id' => $customerTypeTypeId,
+                'parent_id' => null,
+                'name' => 'Business',
+                'code' => 'business',
+                'sort_order' => 2,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'company_id' => $companyId,
+                'lookup_type_id' => $customerTypeTypeId,
+                'parent_id' => null,
+                'name' => 'Motor Club',
+                'code' => 'motor_club',
+                'sort_order' => 3,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'company_id' => $companyId,
+                'lookup_type_id' => $customerTypeTypeId,
+                'parent_id' => null,
+                'name' => 'Insurance',
+                'code' => 'insurance',
+                'sort_order' => 4,
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

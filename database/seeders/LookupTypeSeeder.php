@@ -29,6 +29,13 @@ class LookupTypeSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'company_id' => $companyId,
+                'name' => 'Customer Type',
+                'code' => 'customer_type',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 }

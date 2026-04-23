@@ -6,6 +6,7 @@ use App\Http\Controllers\pages\HomePage;
 use App\Http\Controllers\pages\Page2;
 use App\Http\Controllers\pages\MiscError;
 use App\Http\Controllers\ServiceCallController;
+use App\Http\Controllers\CustomerController;
 
 // Protected app pages
 Route::middleware(['auth'])->group(function () {
@@ -14,6 +15,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/service-calls', [ServiceCallController::class, 'index'])->name('service-calls.index');
     Route::get('/service-calls/create', [ServiceCallController::class, 'create'])->name('service-calls.create');
     Route::post('/service-calls', [ServiceCallController::class, 'store'])->name('service-calls.store');
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
 });
 
 // Test that roles work by creating a route that only users with the "admin" role can access

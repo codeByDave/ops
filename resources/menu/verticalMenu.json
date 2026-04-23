@@ -7,6 +7,12 @@
       "slug": "pages-home"
     },
     {
+      "name": "Customers",
+      "icon": "menu-icon icon-base bx bx-user",
+      "slug": "customers",
+      "url": "/customers"
+    },
+    {
       "name": "Service Calls",
       "icon": "menu-icon icon-base bx bx-car",
       "slug": "service-calls",
