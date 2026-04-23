@@ -1,0 +1,43 @@
+{
+  "menu": [
+    {
+      "url": "/",
+      "name": "Home",
+      "icon": "menu-icon icon-base bx bx-home-circle",
+      "slug": "pages-home"
+    },
+    {
+      "name": "Service Calls",
+      "icon": "menu-icon icon-base bx bx-car",
+      "slug": "service-calls",
+      "url": "/service-calls"
+    },
+    {
+      "url": "/page-2",
+      "icon": "menu-icon icon-base bx bx-file",
+      "name": "Page 2",
+      "slug": "pages-page-2"
+    },
+    {
+      "url": "/pages/misc-error",
+      "name": "Error",
+      "icon": "menu-icon icon-base bx bx-error",
+      "slug": "pages-misc-error",
+      "target": "_blank"
+    },
+    {
+      "url": "login",
+      "name": "Login",
+      "icon": "menu-icon icon-base bx bx-log-in",
+      "slug": "auth-login-basic",
+      "target": "_blank"
+    },
+    {
+      "url": "register",
+      "name": "Register",
+      "icon": "menu-icon icon-base bx bx-user",
+      "slug": "auth-register-basic",
+      "target": "_blank"
+    }
+  ]
+}
