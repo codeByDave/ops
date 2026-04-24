@@ -3,10 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = [];
+
+    protected static function booted()
+    {
+        static::creating(function ($customer) {
+            if (empty($customer->public_id)) {
+                $customer->public_id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function company()
     {

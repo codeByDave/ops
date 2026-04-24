@@ -1,11 +1,11 @@
 @extends('layouts.contentNavbarLayout')
 
-@section('title', 'Create Customer')
+@section('title', isset($customer) ? 'Edit Profile' : 'Create Profile')
 
 @section('content')
   <div class="card">
     <div class="card-header">
-      <h5 class="mb-0">Create Customer</h5>
+      <h5 class="mb-0">{{ isset($customer) ? 'Edit Profile' : 'Create Profile' }}</h5>
     </div>
 
     <div class="card-body">
@@ -19,8 +19,12 @@
         </div>
       @endif
 
-      <form method="POST" action="{{ route('customers.store') }}">
+      <form method="POST" action="{{ isset($customer) ? route('customers.update', $customer) : route('customers.store') }}">
         @csrf
+
+        @if(isset($customer))
+          @method('PUT')
+        @endif
 
         <div class="row">
           <div class="col-md-12 mb-3">
@@ -31,7 +35,7 @@
                 <option
                   value="{{ $customerType->id }}"
                   data-code="{{ $customerType->code }}"
-                  {{ old('customer_type_id') == $customerType->id ? 'selected' : '' }}
+                  {{ old('customer_type_id', $customer->customer_type_id ?? '') == $customerType->id ? 'selected' : '' }}
                 >
                   {{ $customerType->name }}
                 </option>
@@ -50,7 +54,7 @@
                 class="form-control"
                 id="first_name"
                 name="first_name"
-                value="{{ old('first_name') }}"
+                value="{{ old('first_name', $customer->first_name ?? '') }}"
               >
             </div>
 
@@ -61,7 +65,7 @@
                 class="form-control"
                 id="last_name"
                 name="last_name"
-                value="{{ old('last_name') }}"
+                value="{{ old('last_name', $customer->last_name ?? '') }}"
               >
             </div>
           </div>
@@ -73,7 +77,7 @@
               class="form-control"
               id="company_name"
               name="company_name"
-              value="{{ old('company_name') }}"
+              value="{{ old('company_name', $customer->company_name ?? '') }}"
             >
           </div>
 
@@ -84,7 +88,7 @@
               class="form-control"
               id="email"
               name="email"
-              value="{{ old('email') }}"
+              value="{{ old('email', $customer->email ?? '') }}"
             >
           </div>
 
@@ -95,7 +99,7 @@
               class="form-control"
               id="mobile_phone"
               name="mobile_phone"
-              value="{{ old('mobile_phone') }}"
+              value="{{ old('mobile_phone', $customer->formatted_mobile_phone ?? '') }}"
               maxlength="14"
               inputmode="numeric"
               oninput="formatPhoneNumber(this)"
@@ -109,7 +113,7 @@
               class="form-control"
               id="home_phone"
               name="home_phone"
-              value="{{ old('home_phone') }}"
+              value="{{ old('home_phone', $customer->formatted_home_phone ?? '') }}"
               maxlength="14"
               inputmode="numeric"
               oninput="formatPhoneNumber(this)"
@@ -123,7 +127,7 @@
               class="form-control"
               id="address_1"
               name="address_1"
-              value="{{ old('address_1') }}"
+              value="{{ old('address_1', $customer->address_1 ?? '') }}"
             >
           </div>
 
@@ -134,7 +138,7 @@
               class="form-control"
               id="address_2"
               name="address_2"
-              value="{{ old('address_2') }}"
+              value="{{ old('address_2', $customer->address_2 ?? '') }}"
             >
           </div>
 
@@ -145,7 +149,7 @@
               class="form-control"
               id="city"
               name="city"
-              value="{{ old('city') }}"
+              value="{{ old('city', $customer->city ?? '') }}"
             >
           </div>
 
@@ -154,7 +158,7 @@
             <select class="form-select" id="state" name="state">
               <option value="">Select State</option>
               @foreach ($states as $abbr => $stateName)
-                <option value="{{ $abbr }}" {{ old('state') == $abbr ? 'selected' : '' }}>
+                <option value="{{ $abbr }}" {{ old('state', $customer->state ?? '') == $abbr ? 'selected' : '' }}>
                   {{ $stateName }}
                 </option>
               @endforeach
@@ -168,7 +172,7 @@
               class="form-control"
               id="postal_code"
               name="postal_code"
-              value="{{ old('postal_code') }}"
+              value="{{ old('postal_code', $customer->postal_code ?? '') }}"
             >
           </div>
 
@@ -179,13 +183,18 @@
               id="notes"
               name="notes"
               rows="4"
-            >{{ old('notes') }}</textarea>
+            >{{ old('notes', $customer->notes ?? '') }}</textarea>
           </div>
         </div>
 
         <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-primary">Save Customer</button>
-          <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            {{ isset($customer) ? 'Update Profile' : 'Save Profile' }}
+          </button>
+
+          <a href="{{ isset($customer) ? route('customers.show', $customer) : route('customers.index') }}" class="btn btn-outline-secondary">
+            Cancel
+          </a>
         </div>
       </form>
     </div>
@@ -196,7 +205,6 @@
 <script>
   function formatPhoneNumber(input) {
     let digits = input.value.replace(/\D/g, '').substring(0, 10);
-
     let formatted = digits;
 
     if (digits.length > 6) {
@@ -233,8 +241,6 @@
       firstName.required = true;
       lastName.required = true;
       companyName.required = false;
-
-      companyName.value = '';
     } else if (
       selectedCode === 'business' ||
       selectedCode === 'motor_club' ||
@@ -250,9 +256,6 @@
       firstName.required = false;
       lastName.required = false;
       companyName.required = true;
-
-      firstName.value = '';
-      lastName.value = '';
     } else {
       consumerFields.style.display = 'flex';
       companyField.style.display = 'block';

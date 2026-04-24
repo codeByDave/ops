@@ -30,6 +30,7 @@
                 <th>Phone</th>
                 <th>Type</th>
                 <th>Balance</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -53,6 +54,28 @@
                   <td>{{ $customer->display_phone ?: '—' }}</td>
                   <td>{{ $customer->customerType->name ?? '—' }}</td>
                   <td>—</td>
+                  <td>
+                    <div class="d-flex gap-2">
+                      {{-- VIEW BUTTON --}}
+                      <a href="{{ route('customers.show', $customer) }}"
+                        class="btn btn-sm btn-icon btn-outline-primary"
+                        title="View Profile">
+                        <i class="bx bx-show"></i>
+                      </a>
+                      {{-- DELETE BUTTON --}}
+                      <form method="POST"
+                            action="{{ route('customers.destroy', $customer) }}"
+                            onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit"
+                                class="btn btn-sm btn-icon btn-outline-danger"
+                                title="Delete Profile">
+                          <i class="bx bx-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               @endforeach
             </tbody>

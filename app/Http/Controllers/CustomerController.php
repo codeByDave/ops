@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Models\LookupValue;
+use App\Helpers\AddressHelper;
 
 class CustomerController extends Controller
 {
@@ -21,60 +22,20 @@ class CustomerController extends Controller
             $q->where('code', 'customer_type');
         })->orderBy('sort_order')->get();
 
-        $states = [
-            'AL' => 'Alabama',
-            'AK' => 'Alaska',
-            'AZ' => 'Arizona',
-            'AR' => 'Arkansas',
-            'CA' => 'California',
-            'CO' => 'Colorado',
-            'CT' => 'Connecticut',
-            'DE' => 'Delaware',
-            'FL' => 'Florida',
-            'GA' => 'Georgia',
-            'HI' => 'Hawaii',
-            'ID' => 'Idaho',
-            'IL' => 'Illinois',
-            'IN' => 'Indiana',
-            'IA' => 'Iowa',
-            'KS' => 'Kansas',
-            'KY' => 'Kentucky',
-            'LA' => 'Louisiana',
-            'ME' => 'Maine',
-            'MD' => 'Maryland',
-            'MA' => 'Massachusetts',
-            'MI' => 'Michigan',
-            'MN' => 'Minnesota',
-            'MS' => 'Mississippi',
-            'MO' => 'Missouri',
-            'MT' => 'Montana',
-            'NE' => 'Nebraska',
-            'NV' => 'Nevada',
-            'NH' => 'New Hampshire',
-            'NJ' => 'New Jersey',
-            'NM' => 'New Mexico',
-            'NY' => 'New York',
-            'NC' => 'North Carolina',
-            'ND' => 'North Dakota',
-            'OH' => 'Ohio',
-            'OK' => 'Oklahoma',
-            'OR' => 'Oregon',
-            'PA' => 'Pennsylvania',
-            'RI' => 'Rhode Island',
-            'SC' => 'South Carolina',
-            'SD' => 'South Dakota',
-            'TN' => 'Tennessee',
-            'TX' => 'Texas',
-            'UT' => 'Utah',
-            'VT' => 'Vermont',
-            'VA' => 'Virginia',
-            'WA' => 'Washington',
-            'WV' => 'West Virginia',
-            'WI' => 'Wisconsin',
-            'WY' => 'Wyoming',
-        ];
+        $states = AddressHelper::states();
 
-        return view('content.pages.customers.create', compact('customerTypes', 'states'));
+        return view('content.pages.customers.form', compact('customerTypes', 'states'));
+    }
+
+    public function edit(Customer $customer)
+    {
+        $customerTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'customer_type');
+        })->orderBy('sort_order')->get();
+
+        $states = AddressHelper::states();
+
+        return view('content.pages.customers.form', compact('customer', 'customerTypes', 'states'));
     }
 
     public function store(Request $request)
@@ -149,5 +110,67 @@ class CustomerController extends Controller
         return redirect()
             ->route('customers.index')
             ->with('success', 'Customer created successfully.');
+    }
+
+    public function profile($public_id)
+    {
+        $customer = Customer::where('public_id', $public_id)->firstOrFail();
+
+        $customerTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'customer_type');
+        })->orderBy('sort_order')->get();
+
+        $states = AddressHelper::states();
+
+        return view('content.pages.customers.show', compact('customer', 'customerTypes', 'states'));
+    }
+
+    public function show(Customer $customer)
+    {
+        $customerTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'customer_type');
+        })->orderBy('sort_order')->get();
+
+        $states = AddressHelper::states();
+
+        return view('content.pages.customers.show', compact('customer', 'customerTypes', 'states'));
+    }
+
+    public function destroy(Customer $customer)
+    {
+        $customer->delete();
+
+        return redirect()
+            ->route('customers.index')
+            ->with('success', 'Profile deleted successfully.');
+    }
+
+    public function update(Request $request, Customer $customer)
+    {
+        $data = $request->validate([
+            'first_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'customer_type_id' => ['required', 'exists:lookup_values,id'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'home_phone' => ['nullable', 'string', 'max:50'],
+            'mobile_phone' => ['nullable', 'string', 'max:50'],
+            'address_1' => ['nullable', 'string', 'max:255'],
+            'address_2' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:50'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        // Strip phone formatting
+        $data['mobile_phone'] = preg_replace('/\D/', '', $data['mobile_phone'] ?? '');
+        $data['home_phone'] = preg_replace('/\D/', '', $data['home_phone'] ?? '');
+
+        $customer->update($data);
+
+        return redirect()
+            ->route('customers.show', $customer)
+            ->with('success', 'Profile updated successfully.');
     }
 }
