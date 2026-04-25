@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/customers/{customer}/vehicles', [VehicleController::class, 'store'])->name('customers.vehicles.store');
     Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
     Route::patch('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive'])->name('vehicles.archive');
+    Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 });
 
 // Test that roles work by creating a route that only users with the "admin" role can access

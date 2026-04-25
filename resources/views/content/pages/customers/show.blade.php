@@ -169,30 +169,48 @@
                           @endif
                         </td>
                         <td class="text-center">
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-icon btn-outline-primary js-edit-vehicle"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editVehicleModal"
-                            title="View / Edit Vehicle"
+                          <div class="d-inline-flex gap-2 align-items-center justify-content-center">
 
-                            data-update-url="{{ route('vehicles.update', $vehicle) }}"
-                            data-year="{{ $vehicle->year }}"
-                            data-make="{{ $vehicle->make }}"
-                            data-model="{{ $vehicle->model }}"
-                            data-color="{{ $vehicle->color }}"
-                            data-vin="{{ $vehicle->vin }}"
-                            data-tag-state="{{ $vehicle->tag_state }}"
-                            data-tag-number="{{ $vehicle->tag_number }}"
-                            data-notes="{{ $vehicle->notes }}"
-                            data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
-                          >
-                            <i class="bx bx-show"></i>
-                          </button>
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-icon btn-outline-primary js-edit-vehicle"
+                              data-bs-toggle="modal"
+                              data-bs-target="#editVehicleModal"
+                              title="View / Edit Vehicle"
 
-                          <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" title="Archive Vehicle">
-                            <i class="bx bx-hide"></i>
-                          </button>
+                              data-update-url="{{ route('vehicles.update', $vehicle) }}"
+                              data-year="{{ $vehicle->year }}"
+                              data-make="{{ $vehicle->make }}"
+                              data-model="{{ $vehicle->model }}"
+                              data-color="{{ $vehicle->color }}"
+                              data-vin="{{ $vehicle->vin }}"
+                              data-tag-state="{{ $vehicle->tag_state }}"
+                              data-tag-number="{{ $vehicle->tag_number }}"
+                              data-notes="{{ $vehicle->notes }}"
+                              data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
+                            >
+                              <i class="bx bx-show"></i>
+                            </button>
+
+                            <form
+                              method="POST"
+                              action="{{ route('vehicles.destroy', $vehicle) }}"
+                              class="d-inline m-0"
+                              onsubmit="return confirm('Archive this vehicle? It will be hidden from the active vehicle list.');"
+                            >
+                              @csrf
+                              @method('DELETE')
+
+                              <button
+                                type="submit"
+                                class="btn btn-sm btn-icon btn-outline-secondary"
+                                title="Archive Vehicle"
+                              >
+                                <i class="bx bx-hide"></i>
+                              </button>
+                            </form>
+
+                          </div>
                         </td>
                       </tr>
                     @endforeach

@@ -71,4 +71,11 @@ class VehicleController extends Controller
 
         return back()->with('success', 'Vehicle archived successfully.');
     }
+
+    public function destroy(Vehicle $vehicle)
+    {
+        $vehicle->delete();
+
+        return back()->with('success', 'Vehicle archived successfully.');
+    }
 }
