@@ -128,7 +128,9 @@
         <div class="card mb-4">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Vehicles</h5>
-            <button type="button" class="btn btn-sm btn-primary">Add Vehicle</button>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addVehicleModal">
+              Add Vehicle
+            </button>
           </div>
 
           <div class="card-body">
@@ -140,8 +142,9 @@
                   <thead>
                     <tr>
                       <th>Vehicle</th>
-                      <th>Plate</th>
-                      <th>Status</th>
+                      <th class="text-center">Plate</th>
+                      <th class="text-center">Status</th>
+                      <th class="text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -149,16 +152,47 @@
                       <tr>
                         <td>
                           {{ trim(($vehicle->year ?? '') . ' ' . ($vehicle->make ?? '') . ' ' . ($vehicle->model ?? '')) ?: '—' }}
+                          @if(!empty($vehicle->notes))
+                            <span title="Vehicle has notes">
+                              <i class="bx bx-note text-warning fs-5"></i>
+                            </span>
+                          @endif
                         </td>
-                        <td>
+                        <td class="text-center">
                           {{ trim(($vehicle->tag_state ?? '') . ' ' . ($vehicle->tag_number ?? '')) ?: '—' }}
                         </td>
-                        <td>
+                        <td class="text-center">
                           @if ($vehicle->is_active)
                             <span class="badge bg-label-success">Active</span>
                           @else
                             <span class="badge bg-label-secondary">Inactive</span>
                           @endif
+                        </td>
+                        <td class="text-center">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-icon btn-outline-primary js-edit-vehicle"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editVehicleModal"
+                            title="View / Edit Vehicle"
+
+                            data-update-url="{{ route('vehicles.update', $vehicle) }}"
+                            data-year="{{ $vehicle->year }}"
+                            data-make="{{ $vehicle->make }}"
+                            data-model="{{ $vehicle->model }}"
+                            data-color="{{ $vehicle->color }}"
+                            data-vin="{{ $vehicle->vin }}"
+                            data-tag-state="{{ $vehicle->tag_state }}"
+                            data-tag-number="{{ $vehicle->tag_number }}"
+                            data-notes="{{ $vehicle->notes }}"
+                            data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
+                          >
+                            <i class="bx bx-show"></i>
+                          </button>
+
+                          <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" title="Archive Vehicle">
+                            <i class="bx bx-hide"></i>
+                          </button>
                         </td>
                       </tr>
                     @endforeach
@@ -288,9 +322,11 @@
 
 // Edit Modal
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-simple modal-edit-user">
+  <div class="modal-dialog modal-lg mt-10">
     <div class="modal-content">
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
 
       <div class="modal-body p-4">
         <div class="text-center mb-4">
@@ -319,16 +355,14 @@
               </select>
             </div>
 
-            <div id="modal-consumer-name-fields" class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label" for="modal_first_name">First Name</label>
-                <input type="text" class="form-control" id="modal_first_name" name="first_name" value="{{ old('first_name', $customer->first_name ?? '') }}">
-              </div>
+            <div class="col-md-6 mb-3 modal-consumer-name-field">
+              <label class="form-label" for="modal_first_name">First Name</label>
+              <input type="text" class="form-control" id="modal_first_name" name="first_name" value="{{ old('first_name', $customer->first_name ?? '') }}">
+            </div>
 
-              <div class="col-md-6 mb-3">
-                <label class="form-label" for="modal_last_name">Last Name</label>
-                <input type="text" class="form-control" id="modal_last_name" name="last_name" value="{{ old('last_name', $customer->last_name ?? '') }}">
-              </div>
+            <div class="col-md-6 mb-3 modal-consumer-name-field">
+              <label class="form-label" for="modal_last_name">Last Name</label>
+              <input type="text" class="form-control" id="modal_last_name" name="last_name" value="{{ old('last_name', $customer->last_name ?? '') }}">
             </div>
 
             <div id="modal-company-name-field" class="col-12 mb-3">
@@ -417,6 +451,277 @@
   </div>
 </div>
 
+{{-- Add Vehicle Modal --}}
+<div class="modal fade" id="addVehicleModal" tabindex="-1" aria-hidden="true">
+
+  <div class="modal-dialog modal-lg mt-10">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <div class="text-center mb-4">
+          <h4 class="mb-2">Add Vehicle</h4>
+          <p class="text-muted mb-0">Add a vehicle to this profile.</p>
+        </div>
+
+        <form method="POST" action="{{ route('customers.vehicles.store', $customer) }}">
+          @csrf
+
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <label class="form-label" for="vehicle_vin">VIN <span class="text-muted">(optional)</span></label>
+              <input
+                type="text"
+                class="form-control"
+                id="vehicle_vin"
+                name="vin"
+                maxlength="17"
+                style="text-transform: uppercase;"
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="vehicle_color">Color</label>
+              <input
+                type="text"
+                class="form-control"
+                id="vehicle_color"
+                name="color"
+                list="vehicle_color_options"
+                required
+              >
+
+              <datalist id="vehicle_color_options">
+                @foreach ($vehicleColors as $color)
+                  <option value="{{ $color }}">
+                @endforeach
+              </datalist>
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="vehicle_year">Year</label>
+              <input
+                type="number"
+                class="form-control"
+                id="vehicle_year"
+                name="year"
+                min="1900"
+                max="{{ date('Y') + 1 }}"
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="vehicle_make">Make</label>
+              <input
+                type="text"
+                class="form-control"
+                id="vehicle_make"
+                name="make"
+                list="vehicle_make_options"
+                required
+              >
+
+              <datalist id="vehicle_make_options">
+                @foreach ($vehicleMakes as $make)
+                  <option value="{{ $make }}">
+                @endforeach
+              </datalist>
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="vehicle_model">Model</label>
+              <input
+                type="text"
+                class="form-control"
+                id="vehicle_model"
+                name="model"
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="vehicle_tag_state">Tag State</label>
+              <select class="form-select" id="vehicle_tag_state" name="tag_state">
+                <option value="">Select State</option>
+                @foreach ($states as $abbr => $stateName)
+                  <option value="{{ $abbr }}">{{ $stateName }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-8 mb-3">
+              <label class="form-label" for="vehicle_tag_number">Tag Number</label>
+              <input
+                type="text"
+                class="form-control"
+                id="vehicle_tag_number"
+                name="tag_number"
+              >
+            </div>
+
+            <div class="col-12 mb-3">
+              <label class="form-label" for="vehicle_notes">Notes</label>
+              <textarea
+                class="form-control"
+                id="vehicle_notes"
+                name="notes"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-primary me-2">Save Vehicle</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- Edit Vehicle Modal --}}
+<div class="modal fade" id="editVehicleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg mt-10">
+    <div class="modal-content">
+
+      <div class="modal-header border-0 pb-0">
+        <h4 class="modal-title">Edit Vehicle</h4>
+
+        <button type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close">
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="editVehicleForm" method="POST" action="">
+          @csrf
+          @method('PUT')
+
+          <div class="row">
+            {{-- Line 1: Status / VIN / Color --}}
+            <div class="col-md-2 mb-3">
+              <label class="form-label d-block">Status</label>
+              <div class="form-check form-switch mt-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="edit_vehicle_is_active"
+                  name="is_active"
+                  value="1"
+                >
+                <label class="form-check-label" for="edit_vehicle_is_active">Active</label>
+              </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="edit_vehicle_vin">VIN <span class="text-muted">(optional)</span></label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit_vehicle_vin"
+                name="vin"
+                maxlength="17"
+                style="text-transform: uppercase;"
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="edit_vehicle_color">Color</label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit_vehicle_color"
+                name="color"
+                list="vehicle_color_options"
+                required
+              >
+            </div>
+
+            {{-- Line 2: Year / Make / Model --}}
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="edit_vehicle_year">Year</label>
+              <input
+                type="number"
+                class="form-control"
+                id="edit_vehicle_year"
+                name="year"
+                min="1900"
+                max="{{ date('Y') + 1 }}"
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="edit_vehicle_make">Make</label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit_vehicle_make"
+                name="make"
+                list="vehicle_make_options"
+                required
+              >
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="edit_vehicle_model">Model</label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit_vehicle_model"
+                name="model"
+              >
+            </div>
+
+            {{-- Line 3: Tag State / Tag Number --}}
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="edit_vehicle_tag_state">Tag State</label>
+              <select class="form-select" id="edit_vehicle_tag_state" name="tag_state">
+                <option value="">Select State</option>
+                @foreach ($states as $abbr => $stateName)
+                  <option value="{{ $abbr }}">{{ $stateName }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-8 mb-3">
+              <label class="form-label" for="edit_vehicle_tag_number">Tag Number</label>
+              <input
+                type="text"
+                class="form-control"
+                id="edit_vehicle_tag_number"
+                name="tag_number"
+                style="text-transform: uppercase;"
+              >
+            </div>
+
+            {{-- Line 4: Notes --}}
+            <div class="col-12 mb-3">
+              <label class="form-label" for="edit_vehicle_notes">Notes</label>
+              <textarea
+                class="form-control"
+                id="edit_vehicle_notes"
+                name="notes"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-primary me-2">Update Vehicle</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 @push('page-script')
 <script>
   function formatPhoneNumber(input) {
@@ -436,10 +741,15 @@
 
   function toggleModalCustomerFields() {
     const typeSelect = document.getElementById('modal_customer_type_id');
+
+    if (!typeSelect) {
+      return;
+    }
+
     const selectedOption = typeSelect.options[typeSelect.selectedIndex];
     const selectedCode = selectedOption ? selectedOption.dataset.code : '';
 
-    const consumerFields = document.getElementById('modal-consumer-name-fields');
+    const consumerFields = document.querySelectorAll('.modal-consumer-name-field');
     const companyField = document.getElementById('modal-company-name-field');
 
     const firstName = document.getElementById('modal_first_name');
@@ -447,7 +757,10 @@
     const companyName = document.getElementById('modal_company_name');
 
     if (selectedCode === 'consumer') {
-      consumerFields.style.display = 'flex';
+      consumerFields.forEach(function (field) {
+        field.style.display = '';
+      });
+
       companyField.style.display = 'none';
 
       firstName.disabled = false;
@@ -462,7 +775,10 @@
       selectedCode === 'motor_club' ||
       selectedCode === 'insurance'
     ) {
-      consumerFields.style.display = 'none';
+      consumerFields.forEach(function (field) {
+        field.style.display = 'none';
+      });
+
       companyField.style.display = 'block';
 
       firstName.disabled = true;
@@ -473,7 +789,10 @@
       lastName.required = false;
       companyName.required = true;
     } else {
-      consumerFields.style.display = 'flex';
+      consumerFields.forEach(function (field) {
+        field.style.display = '';
+      });
+
       companyField.style.display = 'block';
 
       firstName.disabled = false;
@@ -486,6 +805,27 @@
     }
   }
 
+  function setupEditVehicleModal() {
+    const editVehicleButtons = document.querySelectorAll('.js-edit-vehicle');
+
+    editVehicleButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        document.getElementById('editVehicleForm').action = button.dataset.updateUrl;
+
+        document.getElementById('edit_vehicle_year').value = button.dataset.year || '';
+        document.getElementById('edit_vehicle_make').value = button.dataset.make || '';
+        document.getElementById('edit_vehicle_model').value = button.dataset.model || '';
+        document.getElementById('edit_vehicle_color').value = button.dataset.color || '';
+        document.getElementById('edit_vehicle_vin').value = button.dataset.vin || '';
+        document.getElementById('edit_vehicle_tag_state').value = button.dataset.tagState || '';
+        document.getElementById('edit_vehicle_tag_number').value = button.dataset.tagNumber || '';
+        document.getElementById('edit_vehicle_notes').value = button.dataset.notes || '';
+
+        document.getElementById('edit_vehicle_is_active').checked = button.dataset.isActive === '1';
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     const typeSelect = document.getElementById('modal_customer_type_id');
 
@@ -493,6 +833,8 @@
       typeSelect.addEventListener('change', toggleModalCustomerFields);
       toggleModalCustomerFields();
     }
+
+    setupEditVehicleModal();
   });
 </script>
 @endpush

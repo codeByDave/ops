@@ -70,4 +70,9 @@ class Customer extends Model
     {
         return $this->formatted_mobile_phone ?: $this->formatted_home_phone;
     }
+
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
 }

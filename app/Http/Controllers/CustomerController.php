@@ -6,6 +6,7 @@ use App\Models\Customer;
 use Illuminate\Http\Request;
 use App\Models\LookupValue;
 use App\Helpers\AddressHelper;
+use App\Helpers\VehicleHelper;
 
 class CustomerController extends Controller
 {
@@ -112,17 +113,24 @@ class CustomerController extends Controller
             ->with('success', 'Customer created successfully.');
     }
 
-    public function profile($public_id)
+    public function profile(Customer $customer)
     {
-        $customer = Customer::where('public_id', $public_id)->firstOrFail();
-
         $customerTypes = LookupValue::whereHas('type', function ($q) {
             $q->where('code', 'customer_type');
         })->orderBy('sort_order')->get();
 
         $states = AddressHelper::states();
 
-        return view('content.pages.customers.show', compact('customer', 'customerTypes', 'states'));
+        $vehicleMakes = VehicleHelper::makes();
+        $vehicleColors = VehicleHelper::colors();
+
+        return view('content.pages.customers.show', compact(
+            'customer',
+            'customerTypes',
+            'states',
+            'vehicleMakes',
+            'vehicleColors'
+        ));
     }
 
     public function show(Customer $customer)
@@ -133,7 +141,16 @@ class CustomerController extends Controller
 
         $states = AddressHelper::states();
 
-        return view('content.pages.customers.show', compact('customer', 'customerTypes', 'states'));
+        $vehicleMakes = VehicleHelper::makes();
+        $vehicleColors = VehicleHelper::colors();
+
+        return view('content.pages.customers.show', compact(
+            'customer',
+            'customerTypes',
+            'states',
+            'vehicleMakes',
+            'vehicleColors'
+        ));
     }
 
     public function destroy(Customer $customer)

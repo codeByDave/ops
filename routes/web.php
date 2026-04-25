@@ -7,6 +7,7 @@ use App\Http\Controllers\pages\Page2;
 use App\Http\Controllers\pages\MiscError;
 use App\Http\Controllers\ServiceCallController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\VehicleController;
 
 // Protected app pages
 Route::middleware(['auth'])->group(function () {
@@ -25,7 +26,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
-    Route::get('/profile/{public_id}', [CustomerController::class, 'profile'])->name('customers.profile');
+    Route::get('/profile/{customer}', [CustomerController::class, 'profile'])->name('customers.profile');
+
+    Route::post('/customers/{customer}/vehicles', [VehicleController::class, 'store'])->name('customers.vehicles.store');
+    Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+    Route::patch('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive'])->name('vehicles.archive');
 });
 
 // Test that roles work by creating a route that only users with the "admin" role can access
