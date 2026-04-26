@@ -4,6 +4,12 @@
 
 @section('content')
 
+  @if ($errors->has('assignment'))
+    <div class="alert alert-danger">
+      {{ $errors->first('assignment') }}
+    </div>
+  @endif
+
   @php
     $displayName = $customer->company_name ?: trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''));
 
@@ -225,7 +231,9 @@
                             <button type="button" class="dropdown-item js-edit-service-call" data-bs-toggle="modal"
                               data-bs-target="#editServiceCallModal"
                               data-update-url="{{ route('service-calls.update', $call) }}"
-                              data-vehicle-id="{{ $call->vehicle_id }}"
+                              data-service-call-id="{{ $call->id }}" data-vehicle-id="{{ $call->vehicle_id }}"
+                              data-assigned-user-id="{{ $call->assigned_user_id }}"
+                              data-assigned-company-vehicle-id="{{ $call->assigned_company_vehicle_id }}"
                               data-service-type-id="{{ $call->service_type_id }}"
                               data-phone="{{ e($call->customer_mobile_phone) }}"
                               data-scheduled-for="{{ optional($call->scheduled_for)?->format('Y-m-d\TH:i') }}"
@@ -825,6 +833,36 @@
             </div>
 
             <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_assigned_user_id">Assigned Driver</label>
+              <select class="form-select" id="service_call_assigned_user_id" name="assigned_user_id">
+                <option value="">Unassigned</option>
+
+                @foreach ($drivers as $driver)
+                  <option value="{{ $driver->id }}">
+                    {{ trim(($driver->first_name ?? '') . ' ' . ($driver->last_name ?? '')) ?: $driver->email }}
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_assigned_company_vehicle_id">Assigned Truck</label>
+              <select class="form-select" id="service_call_assigned_company_vehicle_id"
+                name="assigned_company_vehicle_id">
+                <option value="">Unassigned</option>
+
+                @foreach ($companyVehicles as $companyVehicle)
+                  <option value="{{ $companyVehicle->id }}">
+                    {{ $companyVehicle->description }}
+                    @if ($companyVehicle->plate_number)
+                      - {{ $companyVehicle->plate_number }}
+                    @endif
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
               <label class="form-label" for="service_call_customer_mobile_phone">Phone</label>
               <input type="text" class="form-control" id="service_call_customer_mobile_phone"
                 name="customer_mobile_phone" value="{{ $customer->formatted_mobile_phone }}" maxlength="14"
@@ -932,6 +970,12 @@
           @csrf
           @method('PUT')
 
+          @if ($errors->has('assignment'))
+            <div class="alert alert-danger">
+              {{ $errors->first('assignment') }}
+            </div>
+          @endif
+
           <div class="row">
 
             {{-- LEFT COLUMN --}}
@@ -952,6 +996,36 @@
                   <select class="form-select" id="edit_service_service_type_id" name="service_type_id">
                     @foreach ($serviceTypes as $serviceType)
                       <option value="{{ $serviceType->id }}">{{ $serviceType->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="edit_service_assigned_user_id">Assigned Driver</label>
+                  <select class="form-select" id="edit_service_assigned_user_id" name="assigned_user_id">
+                    <option value="">Unassigned</option>
+
+                    @foreach ($drivers as $driver)
+                      <option value="{{ $driver->id }}">
+                        {{ trim(($driver->first_name ?? '') . ' ' . ($driver->last_name ?? '')) ?: $driver->email }}
+                      </option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="edit_service_assigned_company_vehicle_id">Assigned Truck</label>
+                  <select class="form-select" id="edit_service_assigned_company_vehicle_id"
+                    name="assigned_company_vehicle_id">
+                    <option value="">Unassigned</option>
+
+                    @foreach ($companyVehicles as $companyVehicle)
+                      <option value="{{ $companyVehicle->id }}">
+                        {{ $companyVehicle->description }}
+                        @if ($companyVehicle->plate_number)
+                          - {{ $companyVehicle->plate_number }}
+                        @endif
+                      </option>
                     @endforeach
                   </select>
                 </div>
@@ -1421,6 +1495,8 @@
           const vehicle = document.getElementById('edit_service_vehicle_id');
           const serviceType = document.getElementById('edit_service_service_type_id');
           const status = document.getElementById('edit_service_status_id');
+          const assignedUser = document.getElementById('edit_service_assigned_user_id');
+          const assignedCompanyVehicle = document.getElementById('edit_service_assigned_company_vehicle_id');
           const phone = document.getElementById('edit_service_phone');
           const address = document.getElementById('edit_service_address_1');
           const city = document.getElementById('edit_service_city');
@@ -1438,6 +1514,14 @@
 
           if (status) {
             status.value = button.dataset.statusId || '';
+          }
+
+          if (assignedUser) {
+            assignedUser.value = button.dataset.assignedUserId || '';
+          }
+
+          if (assignedCompanyVehicle) {
+            assignedCompanyVehicle.value = button.dataset.assignedCompanyVehicleId || '';
           }
 
           if (phone) {
@@ -1548,6 +1632,51 @@
       setupEditServiceCallModal();
       setupTimelineEditors();
       setupEditServiceCallFormValidation();
+
+      const serviceCallToReopen = @json(session('open_edit_service_call_id'));
+      const oldServiceCallInput = @json(old());
+
+      if (serviceCallToReopen) {
+        const reopenButton = document.querySelector(
+          `.js-edit-service-call[data-service-call-id="${serviceCallToReopen}"]`
+        );
+
+        if (reopenButton) {
+          reopenButton.click();
+
+          setTimeout(function() {
+            const fieldMap = {
+              vehicle_id: 'edit_service_vehicle_id',
+              service_type_id: 'edit_service_service_type_id',
+              status_id: 'edit_service_status_id',
+              assigned_user_id: 'edit_service_assigned_user_id',
+              assigned_company_vehicle_id: 'edit_service_assigned_company_vehicle_id',
+              customer_mobile_phone: 'edit_service_phone',
+              address_1: 'edit_service_address_1',
+              city: 'edit_service_city',
+              state: 'edit_service_state',
+              postal_code: 'edit_service_postal_code',
+              notes: 'edit_service_notes'
+            };
+
+            Object.keys(fieldMap).forEach(function(inputName) {
+              const element = document.getElementById(fieldMap[inputName]);
+
+              if (element && oldServiceCallInput[inputName] !== undefined) {
+                element.value = oldServiceCallInput[inputName] || '';
+              }
+            });
+
+            if (oldServiceCallInput.customer_mobile_phone) {
+              const phoneInput = document.getElementById('edit_service_phone');
+
+              if (phoneInput) {
+                formatPhoneNumber(phoneInput);
+              }
+            }
+          }, 100);
+        }
+      }
     });
   </script>
 @endpush

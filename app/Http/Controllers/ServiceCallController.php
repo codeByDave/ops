@@ -8,6 +8,8 @@ use App\Models\ServiceCall;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use App\Helpers\PhoneHelper;
+use App\Models\User;
+use App\Models\CompanyVehicle;
 
 class ServiceCallController extends Controller
 {
@@ -34,13 +36,11 @@ class ServiceCallController extends Controller
         $serviceTypes = LookupValue::whereHas('type', function ($q) {
 
             $q->where('code', 'service_type');
-
         })->orderBy('sort_order')->get();
 
         $statuses = LookupValue::whereHas('type', function ($q) {
 
             $q->where('code', 'service_call_status');
-
         })->orderBy('sort_order')->get();
 
         return view('content.pages.service-calls.create', compact(
@@ -107,6 +107,8 @@ class ServiceCallController extends Controller
             'state' => ['nullable', 'string', 'max:2'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string'],
+            'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'assigned_company_vehicle_id' => ['nullable', 'exists:company_vehicles,id'],
         ]);
 
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -122,14 +124,16 @@ class ServiceCallController extends Controller
 
         $vehicleLabel = trim(
             ($vehicle->year ?? '') . ' ' .
-            ($vehicle->make ?? '') . ' ' .
-            ($vehicle->model ?? '')
+                ($vehicle->make ?? '') . ' ' .
+                ($vehicle->model ?? '')
         );
 
         ServiceCall::create([
             'company_id' => $customer->company_id,
             'customer_id' => $customer->id,
             'vehicle_id' => $vehicle->id,
+            'assigned_user_id' => $data['assigned_user_id'] ?? null,
+            'assigned_company_vehicle_id' => $data['assigned_company_vehicle_id'] ?? null,
             'status_id' => $status->id,
             'service_type_id' => $data['service_type_id'],
 
@@ -154,6 +158,8 @@ class ServiceCallController extends Controller
     {
         $data = $request->validate([
             'vehicle_id' => ['required', 'exists:vehicles,id'],
+            'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'assigned_company_vehicle_id' => ['nullable', 'exists:company_vehicles,id'],
             'service_type_id' => ['required', 'exists:lookup_values,id'],
             'status_id' => ['required', 'exists:lookup_values,id'],
             'customer_mobile_phone' => ['nullable', 'string', 'max:50'],
@@ -181,11 +187,30 @@ class ServiceCallController extends Controller
 
         $data['vehicle_label'] = trim(
             ($vehicle->year ?? '') . ' ' .
-            ($vehicle->make ?? '') . ' ' .
-            ($vehicle->model ?? '')
+                ($vehicle->make ?? '') . ' ' .
+                ($vehicle->model ?? '')
         ) ?: null;
 
         $status = LookupValue::findOrFail($data['status_id']);
+
+        $statusRequiresAssignment = in_array($status->code, [
+            'dispatched',
+            'en_route',
+            'on_scene',
+            'completed',
+            'goa',
+        ], true);
+
+        if ($statusRequiresAssignment) {
+            if (empty($data['assigned_user_id']) || empty($data['assigned_company_vehicle_id'])) {
+                return back()
+                    ->withErrors([
+                        'assignment' => 'A driver and truck must be assigned before this service call can be dispatched or moved forward.',
+                    ])
+                    ->withInput()
+                    ->with('open_edit_service_call_id', $serviceCall->id);
+            }
+        }
 
         if ($status->code === 'dispatched' && empty($data['dispatched_at'])) {
             $data['dispatched_at'] = now();
@@ -207,7 +232,7 @@ class ServiceCallController extends Controller
         }
 
         $targetStatusCode = null;
-        
+
         if (!empty($data['completed_at'])) {
             $targetStatusCode = 'completed';
         } elseif (!empty($data['arrived_at'])) {

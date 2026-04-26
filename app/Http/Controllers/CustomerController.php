@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Helpers\AddressHelper;
 use App\Helpers\VehicleHelper;
 use App\Helpers\PhoneHelper;
+use App\Models\User;
+use App\Models\CompanyVehicle;
 
 class CustomerController extends Controller
 {
@@ -153,6 +155,14 @@ class CustomerController extends Controller
             $q->where('code', 'service_call_status');
         })->where('is_active', true)->orderBy('sort_order')->get();
 
+        $drivers = User::orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
+        $companyVehicles = CompanyVehicle::where('is_active', true)
+            ->orderBy('description')
+            ->get();
+
         return view('content.pages.customers.show', compact(
             'customer',
             'customerTypes',
@@ -160,7 +170,9 @@ class CustomerController extends Controller
             'vehicleMakes',
             'vehicleColors',
             'serviceTypes',
-            'serviceCallStatuses'
+            'serviceCallStatuses',
+            'drivers',
+            'companyVehicles'
         ));
     }
 

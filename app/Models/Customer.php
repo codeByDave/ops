@@ -34,7 +34,8 @@ class Customer extends Model
 
     public function serviceCalls()
     {
-        return $this->hasMany(ServiceCall::class);
+        return $this->hasMany(ServiceCall::class)
+            ->orderByDesc('created_at');
     }
 
     public function customerType()
