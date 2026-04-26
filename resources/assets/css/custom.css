@@ -1,0 +1,14 @@
+/* =========================
+   OPS Custom Overrides
+   ========================= */
+
+/* Full sidebar logo */
+.app-brand-logo img {
+  max-width: 190px;
+  height: auto;
+}
+
+/* Collapsed sidebar: hide wide logo */
+.layout-menu-collapsed .app-brand-logo img {
+  display: none;
+}

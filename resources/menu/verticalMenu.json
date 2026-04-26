@@ -19,6 +19,12 @@
       "url": "/service-calls"
     },
     {
+      "name": "Employees",
+      "icon": "menu-icon icon-base bx bx-id-card",
+      "slug": "service-calls",
+      "url": "/service-calls"
+    },
+    {
       "url": "/page-2",
       "icon": "menu-icon icon-base bx bx-file",
       "name": "Blank Page Template",
@@ -48,7 +54,7 @@
     {
       "url": "admin-test",
       "name": "Admin Test",
-      "icon": "menu-icon icon-base bx bx-user",
+      "icon": "menu-icon icon-base bx bx-shield-quarter",
       "slug": "admin-test",
       "target": "_blank"
     }

@@ -48,7 +48,6 @@ class CustomerController extends Controller
             'company_name' => ['nullable', 'string', 'max:255'],
             'customer_type_id' => ['required', 'exists:lookup_values,id'],
             'email' => ['nullable', 'email', 'max:255'],
-            'home_phone' => ['nullable', 'string', 'max:50'],
             'mobile_phone' => ['nullable', 'string', 'max:50'],
             'address_1' => ['nullable', 'string', 'max:255'],
             'address_2' => ['nullable', 'string', 'max:255'],
@@ -94,7 +93,6 @@ class CustomerController extends Controller
         }
 
         $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
-        $data['home_phone'] = PhoneHelper::normalize($data['home_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $data['company_id'] = 1;
@@ -183,7 +181,6 @@ class CustomerController extends Controller
             'company_name' => ['nullable', 'string', 'max:255'],
             'customer_type_id' => ['required', 'exists:lookup_values,id'],
             'email' => ['nullable', 'email', 'max:255'],
-            'home_phone' => ['nullable', 'string', 'max:50'],
             'mobile_phone' => ['nullable', 'string', 'max:50'],
             'address_1' => ['nullable', 'string', 'max:255'],
             'address_2' => ['nullable', 'string', 'max:255'],
@@ -194,7 +191,6 @@ class CustomerController extends Controller
         ]);
 
         $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
-        $data['home_phone'] = PhoneHelper::normalize($data['home_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $customer->update($data);

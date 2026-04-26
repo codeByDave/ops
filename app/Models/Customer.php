@@ -47,14 +47,9 @@ class Customer extends Model
         return PhoneHelper::format($this->mobile_phone);
     }
 
-    public function getFormattedHomePhoneAttribute(): ?string
-    {
-        return PhoneHelper::format($this->home_phone);
-    }
-
     public function getDisplayPhoneAttribute(): ?string
     {
-        return $this->formatted_mobile_phone ?: $this->formatted_home_phone;
+        return $this->formatted_mobile_phone;
     }
 
     public function getRouteKeyName(): string
