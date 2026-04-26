@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Vehicle extends Model
 {
     use SoftDeletes;
-    
+
     protected $guarded = [];
 
     public function company()
@@ -16,9 +16,9 @@ class Vehicle extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function customers()
+    public function customer()
     {
-        return $this->belongsToMany(Customer::class);
+        return $this->belongsTo(Customer::class);
     }
 
     public function serviceCalls()

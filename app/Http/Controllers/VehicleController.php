@@ -12,27 +12,23 @@ class VehicleController extends Controller
     {
         $data = $request->validate([
             'year' => ['nullable', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
-            'make' => ['nullable', 'string', 'max:255'],
+            'make' => ['required', 'string', 'max:255'],
             'model' => ['nullable', 'string', 'max:255'],
-            'color' => ['nullable', 'string', 'max:255'],
+            'color' => ['required', 'string', 'max:255'],
             'vin' => ['nullable', 'string', 'size:17'],
             'tag_state' => ['nullable', 'string', 'size:2'],
             'tag_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
         ]);
 
         $data['company_id'] = $customer->company_id;
-        $data['tag_state'] = $data['tag_state'] ? strtoupper($data['tag_state']) : null;
-        $data['tag_number'] = $data['tag_number'] ? strtoupper($data['tag_number']) : null;
-        $data['vin'] = $data['vin'] ? strtoupper($data['vin']) : null;
-        $data['is_active'] = true;
+        $data['customer_id'] = $customer->id;
 
-        $vehicle = Vehicle::create($data);
+        $data['vin'] = !empty($data['vin']) ? strtoupper($data['vin']) : null;
+        $data['tag_state'] = !empty($data['tag_state']) ? strtoupper($data['tag_state']) : null;
+        $data['tag_number'] = !empty($data['tag_number']) ? strtoupper($data['tag_number']) : null;
 
-        $customer->vehicles()->attach($vehicle->id, [
-            'company_id' => $customer->company_id,
-        ]);
+        Vehicle::create($data);
 
         return redirect()
             ->route('customers.show', $customer)
@@ -50,26 +46,15 @@ class VehicleController extends Controller
             'tag_state' => ['nullable', 'string', 'size:2'],
             'tag_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $data['vin'] = $data['vin'] ? strtoupper($data['vin']) : null;
-        $data['tag_state'] = $data['tag_state'] ? strtoupper($data['tag_state']) : null;
-        $data['tag_number'] = $data['tag_number'] ? strtoupper($data['tag_number']) : null;
-        $data['is_active'] = $request->boolean('is_active');
+        $data['vin'] = !empty($data['vin']) ? strtoupper($data['vin']) : null;
+        $data['tag_state'] = !empty($data['tag_state']) ? strtoupper($data['tag_state']) : null;
+        $data['tag_number'] = !empty($data['tag_number']) ? strtoupper($data['tag_number']) : null;
 
         $vehicle->update($data);
 
         return back()->with('success', 'Vehicle updated successfully.');
-    }
-
-    public function archive(Vehicle $vehicle)
-    {
-        $vehicle->update([
-            'is_active' => false,
-        ]);
-
-        return back()->with('success', 'Vehicle archived successfully.');
     }
 
     public function destroy(Vehicle $vehicle)

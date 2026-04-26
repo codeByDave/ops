@@ -158,7 +158,6 @@
                     <tr>
                       <th>Vehicle</th>
                       <th class="text-center">Plate</th>
-                      <th class="text-center">Status</th>
                       <th class="text-center">Action</th>
                     </tr>
                   </thead>
@@ -166,7 +165,22 @@
                     @foreach ($customer->vehicles as $vehicle)
                       <tr>
                         <td>
-                          {{ trim(($vehicle->year ?? '') . ' ' . ($vehicle->make ?? '') . ' ' . ($vehicle->model ?? '')) ?: '—' }}
+                          @php
+                            $vehicleLabel = trim(
+                              ($vehicle->year ?? '') . ' ' .
+                              ($vehicle->make ?? '') . ' ' .
+                              ($vehicle->model ?? '')
+                            );
+
+                            $vehicleColor = trim($vehicle->color ?? '');
+
+                            if ($vehicleColor !== '' && strtolower($vehicleColor) !== 'unknown') {
+                              $vehicleLabel = trim($vehicleLabel . ' - ' . $vehicleColor);
+                            }
+                          @endphp
+
+                          {{ $vehicleLabel ?: '—' }}
+
                           @if(!empty($vehicle->notes))
                             <span
                               data-bs-toggle="tooltip"
@@ -178,14 +192,17 @@
                           @endif
                         </td>
                         <td class="text-center">
-                          {{ trim(($vehicle->tag_state ?? '') . ' ' . ($vehicle->tag_number ?? '')) ?: '—' }}
-                        </td>
-                        <td class="text-center">
-                          @if ($vehicle->is_active)
-                            <span class="badge bg-label-success">Active</span>
-                          @else
-                            <span class="badge bg-label-secondary">Inactive</span>
-                          @endif
+                          @php
+                            $plate = null;
+
+                            if (!empty($vehicle->tag_state) && !empty($vehicle->tag_number)) {
+                                $plate = strtoupper($vehicle->tag_state) . ' - ' . strtoupper($vehicle->tag_number);
+                            } elseif (!empty($vehicle->tag_number)) {
+                                $plate = strtoupper($vehicle->tag_number);
+                            }
+                          @endphp
+
+                          {{ $plate ?: '—' }}
                         </td>
                         <td class="text-center">
                           <div class="dropdown">
@@ -214,24 +231,9 @@
                                 data-tag-state="{{ $vehicle->tag_state }}"
                                 data-tag-number="{{ $vehicle->tag_number }}"
                                 data-notes="{{ $vehicle->notes }}"
-                                data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
                               >
                                 <i class="bx bx-show me-1"></i> View / Edit
                               </button>
-
-                              <form
-                                method="POST"
-                                action="{{ route('vehicles.destroy', $vehicle) }}"
-                                class="m-0"
-                                onsubmit="return confirm('Archive this vehicle? It will be hidden from the active vehicle list.');"
-                              >
-                                @csrf
-                                @method('DELETE')
-
-                                <button type="submit" class="dropdown-item text-danger">
-                                  <i class="bx bx-hide me-1"></i> Archive
-                                </button>
-                              </form>
                             </div>
                           </div>
                         </td>
@@ -740,22 +742,7 @@
           @method('PUT')
 
           <div class="row">
-            {{-- Line 1: Status / VIN / Color --}}
-            <div class="col-md-2 mb-3">
-              <label class="form-label d-block">Status</label>
-              <div class="form-check form-switch mt-2">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  id="edit_vehicle_is_active"
-                  name="is_active"
-                  value="1"
-                >
-                <label class="form-check-label" for="edit_vehicle_is_active">Active</label>
-              </div>
-            </div>
-
-            <div class="col-md-6 mb-3">
+            <div class="col-md-8 mb-3">
               <label class="form-label" for="edit_vehicle_vin">VIN <span class="text-muted">(optional)</span></label>
               <input
                 type="text"
@@ -1471,7 +1458,6 @@
         document.getElementById('edit_vehicle_tag_state').value = button.dataset.tagState || '';
         document.getElementById('edit_vehicle_tag_number').value = button.dataset.tagNumber || '';
         document.getElementById('edit_vehicle_notes').value = button.dataset.notes || '';
-        document.getElementById('edit_vehicle_is_active').checked = button.dataset.isActive === '1';
       });
     });
   }
