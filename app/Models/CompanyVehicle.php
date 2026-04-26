@@ -12,4 +12,13 @@ class CompanyVehicle extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    protected static function booted()
+    {
+        static::saving(function ($vehicle) {
+            $vehicle->plate_number = strtoupper(
+                preg_replace('/\s+/', '', trim($vehicle->plate_number ?? ''))
+            );
+        });
+    }
 }
