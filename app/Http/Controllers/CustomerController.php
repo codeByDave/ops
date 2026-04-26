@@ -92,17 +92,9 @@ class CustomerController extends Controller
             $data['last_name'] = null;
         }
 
-        // Strip everything except digits
-        $data['mobile_phone'] = preg_replace('/\D/', '', $data['mobile_phone'] ?? '');
-        $data['home_phone'] = preg_replace('/\D/', '', $data['home_phone'] ?? '');
-
-        // Limit to 10 digits
-        $data['mobile_phone'] = substr($data['mobile_phone'], 0, 10);
-        $data['home_phone'] = substr($data['home_phone'], 0, 10);
-
-        // Convert empty strings back to null
-        $data['mobile_phone'] = $data['mobile_phone'] ?: null;
-        $data['home_phone'] = $data['home_phone'] ?: null;
+        $data['mobile_phone'] = $this->normalizePhone($data['mobile_phone'] ?? null);
+        $data['home_phone'] = $this->normalizePhone($data['home_phone'] ?? null);
+        $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $data['company_id'] = 1;
 
@@ -124,12 +116,22 @@ class CustomerController extends Controller
         $vehicleMakes = VehicleHelper::makes();
         $vehicleColors = VehicleHelper::colors();
 
+        $serviceTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_type');
+        })->where('is_active', true)->orderBy('sort_order')->get();
+
+        $serviceCallStatuses = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_call_status');
+        })->where('is_active', true)->orderBy('sort_order')->get();
+
         return view('content.pages.customers.show', compact(
             'customer',
             'customerTypes',
             'states',
             'vehicleMakes',
-            'vehicleColors'
+            'vehicleColors',
+            'serviceTypes',
+            'serviceCallStatuses'
         ));
     }
 
@@ -144,12 +146,22 @@ class CustomerController extends Controller
         $vehicleMakes = VehicleHelper::makes();
         $vehicleColors = VehicleHelper::colors();
 
+        $serviceTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_type');
+        })->where('is_active', true)->orderBy('sort_order')->get();
+
+        $serviceCallStatuses = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_call_status');
+        })->where('is_active', true)->orderBy('sort_order')->get();
+
         return view('content.pages.customers.show', compact(
             'customer',
             'customerTypes',
             'states',
             'vehicleMakes',
-            'vehicleColors'
+            'vehicleColors',
+            'serviceTypes',
+            'serviceCallStatuses'
         ));
     }
 
@@ -180,14 +192,30 @@ class CustomerController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        // Strip phone formatting
-        $data['mobile_phone'] = preg_replace('/\D/', '', $data['mobile_phone'] ?? '');
-        $data['home_phone'] = preg_replace('/\D/', '', $data['home_phone'] ?? '');
+        $data['mobile_phone'] = $this->normalizePhone($data['mobile_phone'] ?? null);
+        $data['home_phone'] = $this->normalizePhone($data['home_phone'] ?? null);
+        $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $customer->update($data);
 
         return redirect()
             ->route('customers.show', $customer)
             ->with('success', 'Profile updated successfully.');
+    }
+
+    private function normalizePhone(?string $phone): ?string
+    {
+        if (empty($phone)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D/', '', $phone);
+
+        return $digits ? substr($digits, 0, 10) : null;
+    }
+
+    private function normalizeEmail(?string $email): ?string
+    {
+        return $email ? strtolower($email) : null;
     }
 }

@@ -8,13 +8,17 @@
   $displayName = $customer->company_name
     ?: trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''));
 
-  $fullAddress = collect([
+  $profileAddressParts = collect([
     $customer->address_1,
     $customer->address_2,
     $customer->city,
     $customer->state,
     $customer->postal_code,
-  ])->filter()->implode(', ');
+  ])->filter();
+
+  $fullAddress = $profileAddressParts->implode(', ');
+
+  $hasProfileAddress = $profileAddressParts->isNotEmpty();
 @endphp
 
 <div class="row">
@@ -29,7 +33,18 @@
         <div class="mb-3">
           <div class="avatar avatar-xl mx-auto">
             <span class="avatar-initial rounded-circle bg-label-primary">
-              {{ strtoupper(substr($displayName ?: 'P', 0, 1)) }}
+              @php
+                $name = trim($displayName ?: 'Profile');
+                $parts = preg_split('/\s+/', $name);
+
+                $initials = strtoupper(substr($parts[0], 0, 1));
+
+                if (count($parts) > 1) {
+                    $initials .= strtoupper(substr($parts[1], 0, 1));
+                }
+              @endphp
+
+              {{ $initials }}
             </span>
           </div>
         </div>
@@ -144,7 +159,7 @@
                       <th>Vehicle</th>
                       <th class="text-center">Plate</th>
                       <th class="text-center">Status</th>
-                      <th class="text-center">Actions</th>
+                      <th class="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -153,7 +168,11 @@
                         <td>
                           {{ trim(($vehicle->year ?? '') . ' ' . ($vehicle->make ?? '') . ' ' . ($vehicle->model ?? '')) ?: '—' }}
                           @if(!empty($vehicle->notes))
-                            <span title="Vehicle has notes">
+                            <span
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="{{ e($vehicle->notes) }}"
+                            >
                               <i class="bx bx-note text-warning fs-5"></i>
                             </span>
                           @endif
@@ -169,47 +188,51 @@
                           @endif
                         </td>
                         <td class="text-center">
-                          <div class="d-inline-flex gap-2 align-items-center justify-content-center">
-
+                          <div class="dropdown">
                             <button
                               type="button"
-                              class="btn btn-sm btn-icon btn-outline-primary js-edit-vehicle"
-                              data-bs-toggle="modal"
-                              data-bs-target="#editVehicleModal"
-                              title="View / Edit Vehicle"
-
-                              data-update-url="{{ route('vehicles.update', $vehicle) }}"
-                              data-year="{{ $vehicle->year }}"
-                              data-make="{{ $vehicle->make }}"
-                              data-model="{{ $vehicle->model }}"
-                              data-color="{{ $vehicle->color }}"
-                              data-vin="{{ $vehicle->vin }}"
-                              data-tag-state="{{ $vehicle->tag_state }}"
-                              data-tag-number="{{ $vehicle->tag_number }}"
-                              data-notes="{{ $vehicle->notes }}"
-                              data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
+                              class="btn p-0 dropdown-toggle hide-arrow"
+                              data-bs-toggle="dropdown"
+                              aria-expanded="false"
                             >
-                              <i class="bx bx-show"></i>
+                              <i class="icon-base bx bx-dots-vertical-rounded icon-md"></i>
                             </button>
 
-                            <form
-                              method="POST"
-                              action="{{ route('vehicles.destroy', $vehicle) }}"
-                              class="d-inline m-0"
-                              onsubmit="return confirm('Archive this vehicle? It will be hidden from the active vehicle list.');"
-                            >
-                              @csrf
-                              @method('DELETE')
-
+                            <div class="dropdown-menu">
                               <button
-                                type="submit"
-                                class="btn btn-sm btn-icon btn-outline-secondary"
-                                title="Archive Vehicle"
-                              >
-                                <i class="bx bx-hide"></i>
-                              </button>
-                            </form>
+                                type="button"
+                                class="dropdown-item js-edit-vehicle"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editVehicleModal"
 
+                                data-update-url="{{ route('vehicles.update', $vehicle) }}"
+                                data-year="{{ $vehicle->year }}"
+                                data-make="{{ $vehicle->make }}"
+                                data-model="{{ $vehicle->model }}"
+                                data-color="{{ $vehicle->color }}"
+                                data-vin="{{ $vehicle->vin }}"
+                                data-tag-state="{{ $vehicle->tag_state }}"
+                                data-tag-number="{{ $vehicle->tag_number }}"
+                                data-notes="{{ $vehicle->notes }}"
+                                data-is-active="{{ $vehicle->is_active ? '1' : '0' }}"
+                              >
+                                <i class="bx bx-show me-1"></i> View / Edit
+                              </button>
+
+                              <form
+                                method="POST"
+                                action="{{ route('vehicles.destroy', $vehicle) }}"
+                                class="m-0"
+                                onsubmit="return confirm('Archive this vehicle? It will be hidden from the active vehicle list.');"
+                              >
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" class="dropdown-item text-danger">
+                                  <i class="bx bx-hide me-1"></i> Archive
+                                </button>
+                              </form>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -223,8 +246,11 @@
 
         {{-- Job / Service Call History --}}
         <div class="card mb-4">
-          <div class="card-header">
+          <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Job History</h5>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createServiceCallModal">
+              Add Service Call
+            </button>
           </div>
 
           <div class="card-body">
@@ -236,21 +262,114 @@
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Vehicle</th>
                       <th>Service</th>
-                      <th>Status</th>
+                      <th>Vehicle</th>
+                      <th class="text-center">Status</th>
+                      <th class="text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    @foreach ($customer->serviceCalls as $serviceCall)
+                    @forelse($customer->serviceCalls as $call)
                       <tr>
-                        <td>{{ $serviceCall->created_at?->format('m/d/Y') }}</td>
-                        <td>{{ $serviceCall->vehicle_label ?? '—' }}</td>
-                        <td>{{ $serviceCall->serviceType?->name ?? '—' }}</td>
-                        <td>{{ $serviceCall->status?->name ?? '—' }}</td>
+                        <td>{{ optional($call->created_at)->format('m/d/Y') }}</td>
+
+                        <td>
+                          {{ $call->serviceType->name ?? '-' }}
+
+                          @if(!empty($call->notes))
+                            <span
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="{{ e($call->notes) }}"
+                            >
+                              <i class="bx bx-note text-warning fs-5"></i>
+                            </span>
+                          @endif
+                        </td>
+
+                        <td>{{ $call->vehicle_label ?? '-' }}</td>
+
+                        <td class="text-center">
+                          @php
+                            $statusCode = $call->status?->code;
+
+                            $statusBadgeClass = match ($statusCode) {
+                              'new' => 'bg-label-primary',
+                              'scheduled' => 'bg-label-info',
+                              'dispatched' => 'bg-label-warning',
+                              'en_route' => 'bg-label-warning',
+                              'on_scene' => 'bg-label-dark',
+                              'completed' => 'bg-label-success',
+                              'goa' => 'bg-label-secondary',
+                              'cancelled' => 'bg-label-danger',
+                              default => 'bg-label-secondary',
+                            };
+
+                            $scheduledTooltip = $call->scheduled_for
+                              ? 'Scheduled for ' . $call->scheduled_for->format('m/d/Y g:i A')
+                              : null;
+                          @endphp
+
+                          <span
+                            class="badge {{ $statusBadgeClass }}"
+                            @if($scheduledTooltip)
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="{{ $scheduledTooltip }}"
+                            @endif
+                          >
+                            {{ $call->status?->name ?? 'Unknown' }}
+                          </span>
+                        </td>
+
+                        <td class="text-center">
+                          <div class="dropdown">
+                            <button
+                              type="button"
+                              class="btn p-0 dropdown-toggle hide-arrow"
+                              data-bs-toggle="dropdown"
+                              aria-expanded="false"
+                            >
+                              <i class="icon-base bx bx-dots-vertical-rounded icon-md"></i>
+                            </button>
+
+                            <div class="dropdown-menu">
+                              <button
+                                type="button"
+                                class="dropdown-item js-edit-service-call"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editServiceCallModal"
+                                data-update-url="{{ route('service-calls.update', $call) }}"
+                                data-vehicle-id="{{ $call->vehicle_id }}"
+                                data-service-type-id="{{ $call->service_type_id }}"
+                                data-phone="{{ e($call->customer_mobile_phone) }}"
+                                data-scheduled-for="{{ optional($call->scheduled_for)?->format('Y-m-d\TH:i') }}"
+                                data-created-at="{{ optional($call->created_at)?->format('Y-m-d\TH:i') }}"
+                                data-dispatched-at="{{ optional($call->dispatched_at)?->format('Y-m-d\TH:i') }}"
+                                data-enroute-at="{{ optional($call->enroute_at)?->format('Y-m-d\TH:i') }}"
+                                data-arrived-at="{{ optional($call->arrived_at)?->format('Y-m-d\TH:i') }}"
+                                data-completed-at="{{ optional($call->completed_at)?->format('Y-m-d\TH:i') }}"
+                                data-address1="{{ e($call->address_1) }}"
+                                data-city="{{ e($call->city) }}"
+                                data-state="{{ e($call->state) }}"
+                                data-postal-code="{{ e($call->postal_code) }}"
+                                data-notes="{{ e($call->notes) }}"
+                                data-status-id="{{ $call->status_id }}"
+                                >
+                                <i class="bx bx-show me-1"></i> View / Edit
+                              </button>
+                            </div>
+                          </div>
+                        </td>
                       </tr>
-                    @endforeach
-                  </tbody>
+                    @empty
+                      <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                          No service call history yet.
+                        </td>
+                      </tr>
+                    @endforelse
+                    </tbody>
                 </table>
               </div>
             @endif
@@ -338,7 +457,7 @@
 
 @endsection
 
-// Edit Modal
+{{-- Edit Profile Modal --}}
 <div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg mt-10">
     <div class="modal-content">
@@ -740,6 +859,411 @@
   </div>
 </div>
 
+{{-- Create Service Call Modal --}}
+<div class="modal fade" id="createServiceCallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg mt-10">
+    <div class="modal-content">
+
+      <div class="modal-header border-0 pb-0">
+        <h4 class="modal-title">Add Service Call</h4>
+
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close">
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form method="POST" action="{{ route('customers.service-calls.store', $customer) }}">
+          @csrf
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_vehicle_id">Vehicle</label>
+              <select class="form-select" id="service_call_vehicle_id" name="vehicle_id" required>
+                <option value="">Select Vehicle</option>
+
+                @foreach ($customer->vehicles as $vehicle)
+                  <option value="{{ $vehicle->id }}">
+                    {{ trim(($vehicle->year ?? '') . ' ' . ($vehicle->make ?? '') . ' ' . ($vehicle->model ?? '')) ?: 'Unknown Vehicle' }}
+                    @if($vehicle->tag_number)
+                      - {{ $vehicle->tag_state }} {{ $vehicle->tag_number }}
+                    @endif
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_service_type_id">Service Type</label>
+              <select class="form-select" id="service_call_service_type_id" name="service_type_id" required>
+                <option value="">Select Service Type</option>
+
+                @foreach ($serviceTypes as $serviceType)
+                  <option value="{{ $serviceType->id }}">
+                    {{ $serviceType->name }}
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_customer_mobile_phone">Mobile Phone</label>
+              <input
+                type="text"
+                class="form-control"
+                id="service_call_customer_mobile_phone"
+                name="customer_mobile_phone"
+                value="{{ $customer->formatted_mobile_phone }}"
+                maxlength="14"
+                inputmode="numeric"
+                oninput="formatPhoneNumber(this)"
+              >
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label d-block">Scheduling</label>
+
+              <div class="form-check form-switch mt-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="service_call_is_scheduled"
+                  autocomplete="off"
+                >
+                <label class="form-check-label" for="service_call_is_scheduled">
+                  Schedule for later
+                </label>
+              </div>
+            </div>
+
+            <div class="col-md-12 mb-3 d-none" id="service_call_scheduled_for_wrapper">
+              <label class="form-label" for="service_call_scheduled_for">
+                Scheduled For
+              </label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                id="service_call_scheduled_for"
+                name="scheduled_for"
+                disabled
+                autocomplete="new-password"
+              >
+            </div>
+
+            @if($hasProfileAddress)
+              <div class="col-12 mb-3">
+                <label class="form-label d-block">Is this service call at the profile address?</label>
+
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="use_profile_address"
+                    id="use_profile_address_no"
+                    value="0"
+                    checked
+                  >
+                  <label class="form-check-label" for="use_profile_address_no">No</label>
+                </div>
+
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="use_profile_address"
+                    id="use_profile_address_yes"
+                    value="1"
+                    data-address1="{{ e($customer->address_1) }}"
+                    data-city="{{ e($customer->city) }}"
+                    data-state="{{ e($customer->state) }}"
+                    data-postal-code="{{ e($customer->postal_code) }}"
+                  >
+                  <label class="form-check-label" for="use_profile_address_yes">Yes</label>
+                </div>
+              </div>
+            @endif
+
+            <div class="col-md-12 mb-3">
+              <label class="form-label" for="service_call_address_1">Address 1</label>
+              <input
+                type="text"
+                class="form-control"
+                id="service_call_address_1"
+                name="address_1"
+                value=""
+              >
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="service_call_city">City</label>
+              <input
+                type="text"
+                class="form-control"
+                id="service_call_city"
+                name="city"
+                value=""
+              >
+            </div>
+
+            <div class="col-md-3 mb-3">
+              <label class="form-label" for="service_call_state">State</label>
+              <select class="form-select" id="service_call_state" name="state">
+                <option value="">Select State</option>
+
+                @foreach ($states as $abbr => $stateName)
+                  <option value="{{ $abbr }}">
+                    {{ $stateName }}
+                  </option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-md-3 mb-3">
+              <label class="form-label" for="service_call_postal_code">Postal Code</label>
+              <input
+                type="text"
+                class="form-control"
+                id="service_call_postal_code"
+                name="postal_code"
+                value=""
+              >
+            </div>
+
+            <div class="col-12 mb-3">
+              <label class="form-label" for="service_call_notes">Notes</label>
+              <textarea
+                class="form-control"
+                id="service_call_notes"
+                name="notes"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button type="submit" class="btn btn-primary me-2">Save Service Call</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{{-- Edit Service Call Modal --}}
+<div class="modal fade" id="editServiceCallModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl mt-10">
+    <div class="modal-content">
+
+      <div class="modal-header border-0 pb-0">
+        <h4 class="modal-title">Edit Service Call</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form method="POST" id="editServiceCallForm" action="">
+          @csrf
+          @method('PUT')
+
+          <div class="row">
+
+            {{-- LEFT COLUMN --}}
+            <div class="col-lg-6">
+              <div class="row">
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="edit_service_status_id">Status</label>
+                  <select class="form-select" id="edit_service_status_id" name="status_id" required>
+                    @foreach($serviceCallStatuses as $status)
+                      <option value="{{ $status->id }}">{{ $status->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="edit_service_service_type_id">Service Type</label>
+                  <select class="form-select" id="edit_service_service_type_id" name="service_type_id">
+                    @foreach($serviceTypes as $serviceType)
+                      <option value="{{ $serviceType->id }}">{{ $serviceType->name }}</option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-6 mb-3">
+                  <label class="form-label" for="edit_service_vehicle_id">Vehicle</label>
+                  <select class="form-select" id="edit_service_vehicle_id" name="vehicle_id" required>
+                    @foreach($customer->vehicles as $vehicle)
+                      <option value="{{ $vehicle->id }}">
+                        {{ trim(($vehicle->year ?? '') . ' ' . ($vehicle->make ?? '') . ' ' . ($vehicle->model ?? '')) }}
+                      </option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label" for="edit_service_phone">Mobile Phone</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_service_phone"
+                    name="customer_mobile_phone"
+                    oninput="formatPhoneNumber(this)"
+                  >
+                </div>
+
+                <div class="col-12 mb-3">
+                  <label class="form-label" for="edit_service_address_1">Address</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_service_address_1"
+                    name="address_1"
+                  >
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="edit_service_city">City</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_service_city"
+                    name="city"
+                  >
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="edit_service_state">State</label>
+                  <select class="form-select" id="edit_service_state" name="state">
+                    <option value="">Select State</option>
+
+                    @foreach ($states as $abbr => $stateName)
+                      <option value="{{ $abbr }}">{{ $stateName }}</option>
+                    @endforeach
+                  </select>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                  <label class="form-label" for="edit_service_postal_code">Postal Code</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="edit_service_postal_code"
+                    name="postal_code"
+                  >
+                </div>
+
+                <div class="col-12 mb-3">
+                  <label class="form-label" for="edit_service_notes">Notes</label>
+                  <textarea
+                    class="form-control"
+                    rows="4"
+                    id="edit_service_notes"
+                    name="notes"
+                  ></textarea>
+                </div>
+
+              </div>
+            </div>
+
+            {{-- RIGHT COLUMN / TIMELINE --}}
+            <div class="col-lg-6">
+
+              <div class="border rounded p-3 bg-lighter h-100">
+                <h5 class="mb-3">Timeline</h5>
+
+                @php
+                $timeline = [
+                    'created_at'    => 'Call Received',
+                    'scheduled_for' => 'Scheduled For',
+                    'dispatched_at' => 'Dispatched',
+                    'enroute_at'    => 'En Route',
+                    'arrived_at'    => 'On Scene',
+                    'completed_at'  => 'Closed Out',
+                ];
+                @endphp
+
+                @foreach($timeline as $field => $label)
+                  <div class="mb-3 pb-3 {{ !$loop->last ? 'border-bottom' : '' }}">
+
+                    <div class="d-flex justify-content-between align-items-center">
+                      <div>
+                        <small class="text-muted d-block">{{ $label }}</small>
+                        <span id="label_{{ $field }}">—</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-icon btn-outline-primary timeline-edit-btn"
+                        data-target="{{ $field }}"
+                      >
+                        <i class="bx bx-pencil"></i>
+                      </button>
+                    </div>
+
+                    <div
+                      class="timeline-edit-row d-none mt-2"
+                      id="row_{{ $field }}"
+                    >
+                      <div class="input-group">
+                        <input
+                          type="datetime-local"
+                          class="form-control"
+                          name="{{ $field }}"
+                          id="input_{{ $field }}"
+                        >
+
+                        <button
+                          type="button"
+                          class="btn btn-success timeline-save-btn"
+                          data-target="{{ $field }}"
+                        >
+                          <i class="bx bx-check"></i>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="btn btn-outline-secondary timeline-cancel-btn"
+                          data-target="{{ $field }}"
+                        >
+                          <i class="bx bx-x"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                @endforeach
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary me-2">
+              Update Service Call
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 @push('page-script')
 <script>
   function formatPhoneNumber(input) {
@@ -755,6 +1279,117 @@
     }
 
     input.value = formatted;
+  }
+
+  function setupTooltips() {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      new bootstrap.Tooltip(el);
+    });
+  }
+
+  function formatTimelineLabel(value) {
+    if (!value) {
+      return '—';
+    }
+
+    const date = new Date(value);
+
+    return date.toLocaleString([], {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  }
+
+  function getTimelineValue(field) {
+    const input = document.getElementById('input_' + field);
+    return input ? input.value : '';
+  }
+
+  function validateTimelineOrder() {
+    const createdAt = getTimelineValue('created_at');
+    const scheduledFor = getTimelineValue('scheduled_for');
+    const dispatchedAt = getTimelineValue('dispatched_at');
+    const enrouteAt = getTimelineValue('enroute_at');
+    const arrivedAt = getTimelineValue('arrived_at');
+    const completedAt = getTimelineValue('completed_at');
+
+    const checks = [
+      {
+        field: 'scheduled_for',
+        value: scheduledFor,
+        compareValue: createdAt,
+        message: 'Scheduled For cannot be before Call Received.'
+      },
+      {
+        field: 'dispatched_at',
+        value: dispatchedAt,
+        compareValue: createdAt,
+        message: 'Dispatched cannot be before Call Received.'
+      },
+      {
+        field: 'enroute_at',
+        value: enrouteAt,
+        compareValue: dispatchedAt,
+        message: 'En Route cannot be before Dispatched.'
+      },
+      {
+        field: 'arrived_at',
+        value: arrivedAt,
+        compareValue: enrouteAt,
+        message: 'On Scene cannot be before En Route.'
+      }
+    ];
+
+    for (const check of checks) {
+      if (!check.value || !check.compareValue) {
+        continue;
+      }
+
+      if (new Date(check.value) < new Date(check.compareValue)) {
+        alert(check.message);
+
+        const input = document.getElementById('input_' + check.field);
+
+        if (input) {
+          input.focus();
+        }
+
+        return false;
+      }
+    }
+
+    if (completedAt) {
+      const priorFields = [
+        { field: 'arrived_at', value: arrivedAt },
+        { field: 'enroute_at', value: enrouteAt },
+        { field: 'dispatched_at', value: dispatchedAt },
+        { field: 'scheduled_for', value: scheduledFor },
+        { field: 'created_at', value: createdAt }
+      ];
+
+      for (const prior of priorFields) {
+        if (!prior.value) {
+          continue;
+        }
+
+        if (new Date(completedAt) < new Date(prior.value)) {
+          alert('Closed Out cannot be before earlier timeline events.');
+
+          const input = document.getElementById('input_completed_at');
+
+          if (input) {
+            input.focus();
+          }
+
+          return false;
+        }
+      }
+    }
+
+    return true;
   }
 
   function toggleModalCustomerFields() {
@@ -824,9 +1459,7 @@
   }
 
   function setupEditVehicleModal() {
-    const editVehicleButtons = document.querySelectorAll('.js-edit-vehicle');
-
-    editVehicleButtons.forEach(function (button) {
+    document.querySelectorAll('.js-edit-vehicle').forEach(function (button) {
       button.addEventListener('click', function () {
         document.getElementById('editVehicleForm').action = button.dataset.updateUrl;
 
@@ -838,9 +1471,235 @@
         document.getElementById('edit_vehicle_tag_state').value = button.dataset.tagState || '';
         document.getElementById('edit_vehicle_tag_number').value = button.dataset.tagNumber || '';
         document.getElementById('edit_vehicle_notes').value = button.dataset.notes || '';
-
         document.getElementById('edit_vehicle_is_active').checked = button.dataset.isActive === '1';
       });
+    });
+  }
+
+  function setupServiceCallAddressPrompt() {
+    const yesOption = document.getElementById('use_profile_address_yes');
+    const noOption = document.getElementById('use_profile_address_no');
+
+    const address1 = document.getElementById('service_call_address_1');
+    const city = document.getElementById('service_call_city');
+    const state = document.getElementById('service_call_state');
+    const postalCode = document.getElementById('service_call_postal_code');
+
+    if (!yesOption || !noOption || !address1 || !city || !state || !postalCode) {
+      return;
+    }
+
+    function clearAddress() {
+      address1.value = '';
+      city.value = '';
+      state.value = '';
+      postalCode.value = '';
+    }
+
+    function fillAddress() {
+      address1.value = yesOption.dataset.address1 || '';
+      city.value = yesOption.dataset.city || '';
+      state.value = yesOption.dataset.state || '';
+      postalCode.value = yesOption.dataset.postalCode || '';
+    }
+
+    yesOption.addEventListener('change', function () {
+      if (yesOption.checked) {
+        fillAddress();
+      }
+    });
+
+    noOption.addEventListener('change', function () {
+      if (noOption.checked) {
+        clearAddress();
+      }
+    });
+
+    clearAddress();
+  }
+
+  function setupServiceCallScheduling() {
+    const toggle = document.getElementById('service_call_is_scheduled');
+    const wrap = document.getElementById('service_call_scheduled_for_wrapper');
+    const input = document.getElementById('service_call_scheduled_for');
+
+    if (!toggle || !wrap || !input) {
+      return;
+    }
+
+    function refresh() {
+      if (toggle.checked) {
+        wrap.classList.remove('d-none');
+        input.disabled = false;
+      } else {
+        wrap.classList.add('d-none');
+        input.disabled = true;
+        input.value = '';
+      }
+    }
+
+    toggle.addEventListener('change', refresh);
+    refresh();
+  }
+
+  function setupEditServiceCallModal() {
+    const timelineFields = [
+      'created_at',
+      'scheduled_for',
+      'dispatched_at',
+      'enroute_at',
+      'arrived_at',
+      'completed_at'
+    ];
+
+    function getDatasetValue(button, field) {
+      const datasetKey = field.replace(/_([a-z])/g, function (_, letter) {
+        return letter.toUpperCase();
+      });
+
+      return button.dataset[datasetKey] || '';
+    }
+
+    function loadTimelineField(button, field) {
+      const value = getDatasetValue(button, field);
+
+      const input = document.getElementById('input_' + field);
+      const label = document.getElementById('label_' + field);
+      const row = document.getElementById('row_' + field);
+
+      if (input) {
+        input.value = value;
+      }
+
+      if (label) {
+        label.innerText = formatTimelineLabel(value);
+      }
+
+      if (row) {
+        row.classList.add('d-none');
+      }
+    }
+
+    document.querySelectorAll('.js-edit-service-call').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const form = document.getElementById('editServiceCallForm');
+
+        if (form) {
+          form.action = button.dataset.updateUrl || '';
+        }
+
+        const vehicle = document.getElementById('edit_service_vehicle_id');
+        const serviceType = document.getElementById('edit_service_service_type_id');
+        const status = document.getElementById('edit_service_status_id');
+        const phone = document.getElementById('edit_service_phone');
+        const address = document.getElementById('edit_service_address_1');
+        const city = document.getElementById('edit_service_city');
+        const state = document.getElementById('edit_service_state');
+        const postalCode = document.getElementById('edit_service_postal_code');
+        const notes = document.getElementById('edit_service_notes');
+
+        if (vehicle) {
+          vehicle.value = button.dataset.vehicleId || '';
+        }
+
+        if (serviceType) {
+          serviceType.value = button.dataset.serviceTypeId || '';
+        }
+
+        if (status) {
+          status.value = button.dataset.statusId || '';
+        }
+
+        if (phone) {
+          phone.value = button.dataset.phone || '';
+          formatPhoneNumber(phone);
+        }
+
+        if (address) {
+          address.value = button.dataset.address1 || '';
+        }
+
+        if (city) {
+          city.value = button.dataset.city || '';
+        }
+
+        if (state) {
+          state.value = button.dataset.state || '';
+        }
+
+        if (postalCode) {
+          postalCode.value = button.dataset.postalCode || '';
+        }
+
+        if (notes) {
+          notes.value = button.dataset.notes || '';
+        }
+
+        timelineFields.forEach(function (field) {
+          loadTimelineField(button, field);
+        });
+      });
+    });
+  }
+
+  function setupTimelineEditors() {
+    document.querySelectorAll('.timeline-edit-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const target = btn.dataset.target;
+        const row = document.getElementById('row_' + target);
+
+        if (row) {
+          row.classList.remove('d-none');
+        }
+      });
+    });
+
+    document.querySelectorAll('.timeline-cancel-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const target = btn.dataset.target;
+        const row = document.getElementById('row_' + target);
+
+        if (row) {
+          row.classList.add('d-none');
+        }
+      });
+    });
+
+    document.querySelectorAll('.timeline-save-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const target = btn.dataset.target;
+        const row = document.getElementById('row_' + target);
+        const input = document.getElementById('input_' + target);
+        const label = document.getElementById('label_' + target);
+
+        if (!input || !label) {
+          return;
+        }
+
+        if (!validateTimelineOrder()) {
+          return;
+        }
+
+        label.innerText = formatTimelineLabel(input.value);
+
+        if (row) {
+          row.classList.add('d-none');
+        }
+      });
+    });
+  }
+
+  function setupEditServiceCallFormValidation() {
+    const form = document.getElementById('editServiceCallForm');
+
+    if (!form) {
+      return;
+    }
+
+    form.addEventListener('submit', function (event) {
+      if (!validateTimelineOrder()) {
+        event.preventDefault();
+      }
     });
   }
 
@@ -852,7 +1711,13 @@
       toggleModalCustomerFields();
     }
 
+    setupTooltips();
     setupEditVehicleModal();
+    setupServiceCallAddressPrompt();
+    setupServiceCallScheduling();
+    setupEditServiceCallModal();
+    setupTimelineEditors();
+    setupEditServiceCallFormValidation();
   });
 </script>
 @endpush

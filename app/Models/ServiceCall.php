@@ -8,6 +8,14 @@ class ServiceCall extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'scheduled_for' => 'datetime',
+        'dispatched_at' => 'datetime',
+        'enroute_at' => 'datetime',
+        'arrived_at' => 'datetime',
+        'completed_at' => 'datetime',
+    ];
+
     public function company()
     {
         return $this->belongsTo(Company::class);
