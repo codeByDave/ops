@@ -7,6 +7,7 @@ use App\Models\LookupValue;
 use App\Models\ServiceCall;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use App\Helpers\PhoneHelper;
 
 class ServiceCallController extends Controller
 {
@@ -87,6 +88,8 @@ class ServiceCallController extends Controller
 
         $data['vehicle_label'] = trim("{$vehicle->year} {$vehicle->make} {$vehicle->model}");
 
+        $data['customer_mobile_phone'] = PhoneHelper::normalize($data['customer_mobile_phone'] ?? null);
+
         \App\Models\ServiceCall::create($data);
 
         return redirect()->route('service-calls.index')->with('success', 'Service call created successfully.');
@@ -131,7 +134,7 @@ class ServiceCallController extends Controller
             'service_type_id' => $data['service_type_id'],
 
             'customer_name' => $customerName ?: null,
-            'customer_mobile_phone' => $this->normalizePhone($data['customer_mobile_phone'] ?? null),
+            'customer_mobile_phone' => PhoneHelper::normalize($data['customer_mobile_phone'] ?? null),
             'vehicle_label' => $vehicleLabel ?: null,
 
             'scheduled_for' => $data['scheduled_for'] ?? null,
@@ -171,7 +174,7 @@ class ServiceCallController extends Controller
 
         $this->validateTimelineOrder($data);
 
-        $data['customer_mobile_phone'] = $this->normalizePhone($data['customer_mobile_phone'] ?? null);
+        $data['customer_mobile_phone'] = PhoneHelper::normalize($data['customer_mobile_phone'] ?? null);
         $data['state'] = !empty($data['state']) ? strtoupper($data['state']) : null;
 
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
@@ -280,16 +283,5 @@ class ServiceCallController extends Controller
                 }
             }
         }
-    }
-
-    private function normalizePhone(?string $phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D/', '', $phone);
-
-        return $digits ? substr($digits, 0, 10) : null;
     }
 }

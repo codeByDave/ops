@@ -8,6 +8,7 @@ use App\Http\Controllers\pages\MiscError;
 use App\Http\Controllers\ServiceCallController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\EmployeeController;
 
 // Protected app pages
 Route::middleware(['auth'])->group(function () {
@@ -35,6 +36,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/customers/{customer}/service-calls', [ServiceCallController::class, 'storeFromCustomer'])->name('customers.service-calls.store');
     Route::put('/service-calls/{serviceCall}', [ServiceCallController::class, 'update'])->name('service-calls.update');
+
+    Route::resource('employees', EmployeeController::class)->parameters(['employees' => 'user'])->except(['show', 'create', 'edit']);
 });
 
 // Test that roles work by creating a route that only users with the "admin" role can access

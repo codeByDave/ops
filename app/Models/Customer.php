@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Helpers\PhoneHelper;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Customer extends Model
 {
@@ -41,29 +42,14 @@ class Customer extends Model
         return $this->belongsTo(LookupValue::class, 'customer_type_id');
     }
 
-    public function formatPhoneNumber(?string $phone): ?string
-    {
-        if (!$phone) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D/', '', $phone);
-
-        if (strlen($digits) !== 10) {
-            return $phone;
-        }
-
-        return '(' . substr($digits, 0, 3) . ') ' . substr($digits, 3, 3) . '-' . substr($digits, 6, 4);
-    }
-
     public function getFormattedMobilePhoneAttribute(): ?string
     {
-        return $this->formatPhoneNumber($this->mobile_phone);
+        return PhoneHelper::format($this->mobile_phone);
     }
 
     public function getFormattedHomePhoneAttribute(): ?string
     {
-        return $this->formatPhoneNumber($this->home_phone);
+        return PhoneHelper::format($this->home_phone);
     }
 
     public function getDisplayPhoneAttribute(): ?string

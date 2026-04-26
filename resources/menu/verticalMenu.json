@@ -2,7 +2,7 @@
   "menu": [
     {
       "url": "/",
-      "name": "Home",
+      "name": "Dashboard",
       "icon": "menu-icon icon-base bx bx-home-circle",
       "slug": "pages-home"
     },
@@ -21,7 +21,7 @@
     {
       "url": "/page-2",
       "icon": "menu-icon icon-base bx bx-file",
-      "name": "Page 2",
+      "name": "Blank Page Template",
       "slug": "pages-page-2"
     },
     {
@@ -43,6 +43,13 @@
       "name": "Register",
       "icon": "menu-icon icon-base bx bx-user",
       "slug": "auth-register-basic",
+      "target": "_blank"
+    },
+    {
+      "url": "admin-test",
+      "name": "Admin Test",
+      "icon": "menu-icon icon-base bx bx-user",
+      "slug": "admin-test",
       "target": "_blank"
     }
   ]

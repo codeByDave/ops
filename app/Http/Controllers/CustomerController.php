@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use Illuminate\Http\Request;
 use App\Models\LookupValue;
+use Illuminate\Http\Request;
 use App\Helpers\AddressHelper;
 use App\Helpers\VehicleHelper;
+use App\Helpers\PhoneHelper;
 
 class CustomerController extends Controller
 {
@@ -92,8 +93,8 @@ class CustomerController extends Controller
             $data['last_name'] = null;
         }
 
-        $data['mobile_phone'] = $this->normalizePhone($data['mobile_phone'] ?? null);
-        $data['home_phone'] = $this->normalizePhone($data['home_phone'] ?? null);
+        $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
+        $data['home_phone'] = PhoneHelper::normalize($data['home_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $data['company_id'] = 1;
@@ -192,8 +193,8 @@ class CustomerController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $data['mobile_phone'] = $this->normalizePhone($data['mobile_phone'] ?? null);
-        $data['home_phone'] = $this->normalizePhone($data['home_phone'] ?? null);
+        $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
+        $data['home_phone'] = PhoneHelper::normalize($data['home_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
 
         $customer->update($data);
@@ -203,19 +204,8 @@ class CustomerController extends Controller
             ->with('success', 'Profile updated successfully.');
     }
 
-    private function normalizePhone(?string $phone): ?string
-    {
-        if (empty($phone)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D/', '', $phone);
-
-        return $digits ? substr($digits, 0, 10) : null;
-    }
-
     private function normalizeEmail(?string $email): ?string
     {
-        return $email ? strtolower($email) : null;
+        return $email ? strtolower(trim($email)) : null;
     }
 }
