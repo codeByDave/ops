@@ -13,16 +13,16 @@
       "url": "/customers"
     },
     {
-      "name": "Service Calls",
+      "name": "Dispatch Board",
       "icon": "menu-icon icon-base bx bx-car",
-      "slug": "service-calls",
-      "url": "/service-calls"
+      "slug": "dispatch-board",
+      "url": "/dispatch-board"
     },
     {
       "name": "Employees",
       "icon": "menu-icon icon-base bx bx-id-card",
-      "slug": "service-calls",
-      "url": "/service-calls"
+      "slug": "employees",
+      "url": "/employees"
     },
     {
       "url": "/page-2",

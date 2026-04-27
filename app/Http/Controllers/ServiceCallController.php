@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\PhoneHelper;
 use App\Models\Customer;
 use App\Models\LookupValue;
 use App\Models\ServiceCall;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
-use App\Helpers\PhoneHelper;
-use App\Models\User;
-use App\Models\CompanyVehicle;
 
 class ServiceCallController extends Controller
 {
@@ -26,7 +24,43 @@ class ServiceCallController extends Controller
             ->latest()
             ->get();
 
-        return view('content.pages.service-calls.index', compact('serviceCalls'));
+        $customers = Customer::with('vehicles')
+            ->orderBy('company_name')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
+        $serviceCallStatuses = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_call_status');
+        })->orderBy('sort_order')->get();
+
+        $serviceTypes = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_type');
+        })->orderBy('sort_order')->get();
+
+        $drivers = \App\Models\User::orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
+        $companyVehicles = \App\Models\CompanyVehicle::orderBy('description')->get();
+
+        $vehicles = Vehicle::orderBy('year')
+            ->orderBy('make')
+            ->orderBy('model')
+            ->get();
+
+        $states = \App\Helpers\AddressHelper::states();
+
+        return view('content.pages.service-calls.index', compact(
+            'serviceCalls',
+            'customers',
+            'serviceCallStatuses',
+            'serviceTypes',
+            'drivers',
+            'companyVehicles',
+            'vehicles',
+            'states'
+        ));
     }
 
     public function create()
@@ -34,65 +68,79 @@ class ServiceCallController extends Controller
         $customers = Customer::orderBy('first_name')->get();
 
         $serviceTypes = LookupValue::whereHas('type', function ($q) {
-
             $q->where('code', 'service_type');
         })->orderBy('sort_order')->get();
 
         $statuses = LookupValue::whereHas('type', function ($q) {
-
             $q->where('code', 'service_call_status');
         })->orderBy('sort_order')->get();
 
         return view('content.pages.service-calls.create', compact(
-
             'customers',
-
             'serviceTypes',
-
             'statuses'
-
         ));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-
-            'customer_id' => 'required|exists:customers,id',
-
-            'vehicle_id' => 'required|exists:vehicles,id',
-
-            'service_type_id' => 'nullable|exists:lookup_values,id',
-
-            'status_id' => 'nullable|exists:lookup_values,id',
-
-            'customer_mobile_phone' => 'nullable|string',
-
-            'address_1' => 'nullable|string',
-
-            'city' => 'nullable|string',
-
-            'state' => 'nullable|string',
-
+            'customer_id' => ['required', 'exists:customers,id'],
+            'vehicle_id' => ['required', 'exists:vehicles,id'],
+            'service_type_id' => ['required', 'exists:lookup_values,id'],
+            'customer_mobile_phone' => ['nullable', 'string', 'max:50'],
+            'scheduled_for' => ['nullable', 'date'],
+            'address_1' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'state' => ['nullable', 'string', 'max:2'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'notes' => ['nullable', 'string'],
+            'assigned_user_id' => ['nullable', 'exists:users,id'],
+            'assigned_company_vehicle_id' => ['nullable', 'exists:company_vehicles,id'],
         ]);
 
-        $customer = Customer::find($data['customer_id']);
+        $customer = Customer::findOrFail($data['customer_id']);
+        $vehicle = Vehicle::findOrFail($data['vehicle_id']);
 
-        $vehicle = Vehicle::find($data['vehicle_id']);
+        $statusCode = !empty($data['scheduled_for']) ? 'scheduled' : 'new';
 
-        $data['company_id'] = $customer->company_id;
+        $status = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_call_status');
+        })->where('code', $statusCode)->firstOrFail();
 
-        // Snapshot fields
+        $customerName = $customer->company_name
+            ?: trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''));
 
-        $data['customer_name'] = trim($customer->first_name . ' ' . $customer->last_name);
+        $vehicleLabel = trim(
+            ($vehicle->year ?? '') . ' ' .
+                ($vehicle->make ?? '') . ' ' .
+                ($vehicle->model ?? '')
+        );
 
-        $data['vehicle_label'] = trim("{$vehicle->year} {$vehicle->make} {$vehicle->model}");
+        ServiceCall::create([
+            'company_id' => $customer->company_id,
+            'customer_id' => $customer->id,
+            'vehicle_id' => $vehicle->id,
+            'assigned_user_id' => $data['assigned_user_id'] ?? null,
+            'assigned_company_vehicle_id' => $data['assigned_company_vehicle_id'] ?? null,
+            'status_id' => $status->id,
+            'service_type_id' => $data['service_type_id'],
 
-        $data['customer_mobile_phone'] = PhoneHelper::normalize($data['customer_mobile_phone'] ?? null);
+            'customer_name' => $customerName ?: null,
+            'customer_mobile_phone' => PhoneHelper::normalize($data['customer_mobile_phone'] ?? null),
+            'vehicle_label' => $vehicleLabel ?: null,
 
-        \App\Models\ServiceCall::create($data);
+            'scheduled_for' => $data['scheduled_for'] ?? null,
+            'address_1' => $data['address_1'] ?? null,
+            'city' => $data['city'] ?? null,
+            'state' => !empty($data['state']) ? strtoupper($data['state']) : null,
+            'postal_code' => $data['postal_code'] ?? null,
+            'notes' => $data['notes'] ?? null,
+        ]);
 
-        return redirect()->route('service-calls.index')->with('success', 'Service call created successfully.');
+        return redirect()
+            ->route('dispatch-board.index')
+            ->with('success', 'Service call created successfully.');
     }
 
     public function storeFromCustomer(Request $request, Customer $customer)
@@ -274,6 +322,80 @@ class ServiceCallController extends Controller
         $serviceCall->update($data);
 
         return back()->with('success', 'Service call updated.');
+    }
+
+    public function updateStatus(Request $request, ServiceCall $serviceCall)
+    {
+        $data = $request->validate([
+            'status_code' => ['required', 'string'],
+        ]);
+
+        $allowedStatusCodes = [
+            'dispatched',
+            'en_route',
+            'on_scene',
+            'completed',
+            'cancelled',
+            'goa',
+        ];
+
+        if (! in_array($data['status_code'], $allowedStatusCodes, true)) {
+            abort(422, 'Invalid status selected.');
+        }
+
+        $statusRequiresAssignment = in_array($data['status_code'], [
+            'dispatched',
+            'en_route',
+            'on_scene',
+            'completed',
+            'goa',
+        ], true);
+
+        if (
+            $statusRequiresAssignment
+            && (
+                empty($serviceCall->assigned_user_id)
+                || empty($serviceCall->assigned_company_vehicle_id)
+            )
+        ) {
+            return back()
+                ->withErrors([
+                    'assignment' => 'A driver and truck must be assigned before this service call can be dispatched or moved forward.',
+                ]);
+        }
+
+        $status = LookupValue::whereHas('type', function ($q) {
+            $q->where('code', 'service_call_status');
+        })
+            ->where('code', $data['status_code'])
+            ->firstOrFail();
+
+        $updateData = [
+            'status_id' => $status->id,
+        ];
+
+        if ($data['status_code'] === 'dispatched' && empty($serviceCall->dispatched_at)) {
+            $updateData['dispatched_at'] = now();
+        }
+
+        if ($data['status_code'] === 'en_route' && empty($serviceCall->enroute_at)) {
+            $updateData['enroute_at'] = now();
+        }
+
+        if ($data['status_code'] === 'on_scene' && empty($serviceCall->arrived_at)) {
+            $updateData['arrived_at'] = now();
+        }
+
+        if (
+            in_array($data['status_code'], ['completed', 'cancelled', 'goa'], true)
+            && empty($serviceCall->completed_at)
+        ) {
+            $updateData['completed_at'] = now();
+        }
+
+        $serviceCall->update($updateData);
+
+        return back()->with('success', 'Service call status updated.');
     }
 
     private function validateTimelineOrder(array $data): void
