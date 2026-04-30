@@ -25,6 +25,8 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/service-calls/{serviceCall}', [ServiceCallController::class, 'update'])->name('service-calls.update');
     Route::patch('/service-calls/{serviceCall}/status', [ServiceCallController::class, 'updateStatus'])->name('service-calls.update-status');
 
+    Route::get('/service-calls/{serviceCall}/tech', [ServiceCallController::class, 'tech'])->name('service-calls.tech');
+
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');

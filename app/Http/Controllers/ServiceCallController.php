@@ -21,7 +21,7 @@ class ServiceCallController extends Controller
             'companyVehicle',
             'assignedUser',
         ])
-            ->latest()
+            ->oldest()
             ->get();
 
         $customers = Customer::with('vehicles')
@@ -322,6 +322,20 @@ class ServiceCallController extends Controller
         $serviceCall->update($data);
 
         return back()->with('success', 'Service call updated.');
+    }
+
+    public function tech(ServiceCall $serviceCall)
+    {
+        $serviceCall->load([
+            'customer',
+            'vehicle',
+            'status',
+            'serviceType',
+            'companyVehicle',
+            'assignedUser',
+        ]);
+
+        return view('content.pages.service-calls.tech', compact('serviceCall'));
     }
 
     public function updateStatus(Request $request, ServiceCall $serviceCall)
