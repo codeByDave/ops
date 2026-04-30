@@ -30,10 +30,13 @@ const LibsCssFiles = GetFilesArray('resources/assets/vendor/libs/**/*.css');
 // Processing Core, Themes & Pages Scss Files
 const CoreScssFiles = GetFilesArray('resources/assets/vendor/scss/**/!(_)*.scss');
 
-// Processing Fonts Scss & JS Files
+// Processing Fonts Scss & JS & CSS Files
 const FontsScssFiles = GetFilesArray('resources/assets/vendor/fonts/!(_)*.scss');
 const FontsJsFiles = GetFilesArray('resources/assets/vendor/fonts/**/!(_)*.js');
 const FontsCssFiles = GetFilesArray('resources/assets/vendor/fonts/**/!(_)*.css');
+
+// Force include generated Iconify CSS in Vite manifest
+const IconifyCssFile = 'resources/assets/vendor/fonts/iconify/iconify.css';
 
 // Processing Window Assignment for Libs like jKanban, pdfMake
 function libsWindowAssignment() {
@@ -60,13 +63,14 @@ export default defineConfig({
         ...pageJsFiles,
         ...vendorJsFiles,
         ...LibsJsFiles,
-        'resources/js/laravel-user-management.js', // Processing Laravel User Management CRUD JS File
+        'resources/js/laravel-user-management.js',
         ...CoreScssFiles,
         ...LibsScssFiles,
         ...LibsCssFiles,
         ...FontsScssFiles,
         ...FontsJsFiles,
-        ...FontsCssFiles
+        ...FontsCssFiles,
+        IconifyCssFile
       ],
       refresh: true
     }),
@@ -80,11 +84,11 @@ export default defineConfig({
     }
   },
   json: {
-    stringify: true // Helps with JSON import compatibility
+    stringify: true
   },
   build: {
     commonjsOptions: {
-      include: [/node_modules/] // Helps with importing CommonJS modules
+      include: [/node_modules/]
     }
   }
 });
