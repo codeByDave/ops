@@ -45,7 +45,7 @@
       "target": "_blank"
     },
     {
-      "url": "register",
+      "url": "#",
       "name": "Register",
       "icon": "menu-icon icon-base bx bx-user",
       "slug": "auth-register-basic",
