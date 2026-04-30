@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Helpers\PhoneHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 class Customer extends Model
 {
@@ -17,7 +16,7 @@ class Customer extends Model
     {
         static::creating(function ($customer) {
             if (empty($customer->public_id)) {
-                $customer->public_id = (string) Str::uuid();
+                $customer->public_id = self::generatePublicId();
             }
         });
     }
@@ -56,5 +55,14 @@ class Customer extends Model
     public function getRouteKeyName(): string
     {
         return 'public_id';
+    }
+
+    private static function generatePublicId(): string
+    {
+        do {
+            $id = 'CUST-' . str_pad((string) mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+        } while (self::where('public_id', $id)->exists());
+
+        return $id;
     }
 }
