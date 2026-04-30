@@ -327,6 +327,11 @@
     "file": "assets/raty-BWWjJmYD.woff",
     "src": "node_modules/raty-js/src/fonts/raty.woff"
   },
+  "resources/assets/css/custom.css": {
+    "file": "assets/custom-CFggtM8c.css",
+    "src": "resources/assets/css/custom.css",
+    "isEntry": true
+  },
   "resources/assets/css/demo.css": {
     "file": "assets/demo-kASxDmGZ.css",
     "src": "resources/assets/css/demo.css",
