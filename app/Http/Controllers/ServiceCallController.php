@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\LookupValue;
 use App\Models\ServiceCall;
 use App\Models\Vehicle;
+use App\Services\ServiceCallNumberGenerator;
 use Illuminate\Http\Request;
 
 class ServiceCallController extends Controller
@@ -82,7 +83,7 @@ class ServiceCallController extends Controller
         ));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ServiceCallNumberGenerator $numberGenerator)
     {
         $data = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
@@ -117,7 +118,7 @@ class ServiceCallController extends Controller
                 ($vehicle->model ?? '')
         );
 
-        ServiceCall::create([
+        $serviceCall = $numberGenerator->create([
             'company_id' => $customer->company_id,
             'customer_id' => $customer->id,
             'vehicle_id' => $vehicle->id,
@@ -140,10 +141,10 @@ class ServiceCallController extends Controller
 
         return redirect()
             ->route('dispatch-board.index')
-            ->with('success', 'Service call created successfully.');
+            ->with('success', "Service call {$serviceCall->service_call_number} created successfully.");
     }
 
-    public function storeFromCustomer(Request $request, Customer $customer)
+    public function storeFromCustomer(Request $request, Customer $customer, ServiceCallNumberGenerator $numberGenerator)
     {
         $data = $request->validate([
             'vehicle_id' => ['required', 'exists:vehicles,id'],
@@ -176,7 +177,7 @@ class ServiceCallController extends Controller
                 ($vehicle->model ?? '')
         );
 
-        ServiceCall::create([
+        $serviceCall = $numberGenerator->create([
             'company_id' => $customer->company_id,
             'customer_id' => $customer->id,
             'vehicle_id' => $vehicle->id,
@@ -199,7 +200,7 @@ class ServiceCallController extends Controller
 
         return redirect()
             ->route('customers.show', $customer)
-            ->with('success', 'Service call created successfully.');
+            ->with('success', "Service call {$serviceCall->service_call_number} created successfully.");
     }
 
     public function update(Request $request, ServiceCall $serviceCall)

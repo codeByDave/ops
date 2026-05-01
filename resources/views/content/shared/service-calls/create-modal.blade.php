@@ -21,7 +21,8 @@
               <label class="form-label" for="service_call_customer_id">Customer</label>
 
               @if ($lockCustomer && $selectedCustomer)
-                <input type="hidden" name="customer_id" value="{{ $selectedCustomer->id }}">
+                <input type="hidden" id="service_call_locked_customer_id" name="customer_id"
+                  value="{{ $selectedCustomer->id }}">
 
                 <select class="form-select" id="service_call_customer_id" disabled>
                   <option selected>

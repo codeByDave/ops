@@ -32,24 +32,24 @@
       return;
     }
 
-    const originalVehicleOptions = Array.from(vehicleSelect.options)
+    const originalVehicleOptions = Array.from(vehicleSelect.querySelectorAll('option'))
       .filter(function(option) {
-        return option.value;
+        return option.value !== '';
       })
       .map(function(option) {
         return {
           value: option.value,
-          text: option.text,
-          customerId: option.dataset.customerId
+          text: option.textContent.trim(),
+          customerId: option.getAttribute('data-customer-id')
         };
       });
 
     function getSelectedCustomerId() {
-      if (lockedCustomerInput) {
+      if (lockedCustomerInput && lockedCustomerInput.value) {
         return lockedCustomerInput.value;
       }
 
-      if (customerSelect) {
+      if (customerSelect && customerSelect.value) {
         return customerSelect.value;
       }
 
@@ -67,19 +67,18 @@
       vehicleSelect.appendChild(placeholderOption);
 
       if (!selectedCustomerId) {
-        vehicleSelect.value = '';
         return;
       }
 
-      const matchingVehicles = originalVehicleOptions.filter(function(option) {
-        return option.customerId === selectedCustomerId;
+      const matchingVehicles = originalVehicleOptions.filter(function(vehicle) {
+        return String(vehicle.customerId) === String(selectedCustomerId);
       });
 
       matchingVehicles.forEach(function(vehicle) {
         const option = document.createElement('option');
         option.value = vehicle.value;
         option.textContent = vehicle.text;
-        option.dataset.customerId = vehicle.customerId;
+        option.setAttribute('data-customer-id', vehicle.customerId);
 
         vehicleSelect.appendChild(option);
       });
