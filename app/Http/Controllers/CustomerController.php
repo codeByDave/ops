@@ -96,7 +96,7 @@ class CustomerController extends Controller
 
         $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
-
+        $data['state'] = $this->normalizeState($data['state'] ?? null);
         $data['company_id'] = 1;
 
         Customer::create($data);
@@ -108,32 +108,7 @@ class CustomerController extends Controller
 
     public function profile(Customer $customer)
     {
-        $customerTypes = LookupValue::whereHas('type', function ($q) {
-            $q->where('code', 'customer_type');
-        })->orderBy('sort_order')->get();
-
-        $states = AddressHelper::states();
-
-        $vehicleMakes = VehicleHelper::makes();
-        $vehicleColors = VehicleHelper::colors();
-
-        $serviceTypes = LookupValue::whereHas('type', function ($q) {
-            $q->where('code', 'service_type');
-        })->where('is_active', true)->orderBy('sort_order')->get();
-
-        $serviceCallStatuses = LookupValue::whereHas('type', function ($q) {
-            $q->where('code', 'service_call_status');
-        })->where('is_active', true)->orderBy('sort_order')->get();
-
-        return view('content.pages.customers.show', compact(
-            'customer',
-            'customerTypes',
-            'states',
-            'vehicleMakes',
-            'vehicleColors',
-            'serviceTypes',
-            'serviceCallStatuses'
-        ));
+        return $this->show($customer);
     }
 
     public function show(Customer $customer)
@@ -163,6 +138,34 @@ class CustomerController extends Controller
             ->orderBy('description')
             ->get();
 
+        $primaryServiceCalls = $customer->serviceCalls()
+            ->with([
+                'customer',
+                'vehicle',
+                'serviceType',
+                'status',
+                'assignedUser',
+                'assignedCompanyVehicle',
+            ])
+            ->get();
+
+        $participantServiceCalls = $customer->participantServiceCalls()
+            ->with([
+                'customer',
+                'vehicle',
+                'serviceType',
+                'status',
+                'assignedUser',
+                'assignedCompanyVehicle',
+            ])
+            ->get();
+
+        $serviceCalls = $primaryServiceCalls
+            ->merge($participantServiceCalls)
+            ->unique('id')
+            ->sortByDesc('created_at')
+            ->values();
+
         return view('content.pages.customers.show', compact(
             'customer',
             'customerTypes',
@@ -172,7 +175,8 @@ class CustomerController extends Controller
             'serviceTypes',
             'serviceCallStatuses',
             'drivers',
-            'companyVehicles'
+            'companyVehicles',
+            'serviceCalls'
         ));
     }
 
@@ -204,6 +208,7 @@ class CustomerController extends Controller
 
         $data['mobile_phone'] = PhoneHelper::normalize($data['mobile_phone'] ?? null);
         $data['email'] = $this->normalizeEmail($data['email'] ?? null);
+        $data['state'] = $this->normalizeState($data['state'] ?? null);
 
         $customer->update($data);
 
@@ -215,5 +220,10 @@ class CustomerController extends Controller
     private function normalizeEmail(?string $email): ?string
     {
         return $email ? strtolower(trim($email)) : null;
+    }
+
+    private function normalizeState(?string $state): ?string
+    {
+        return $state ? strtoupper(substr(trim($state), 0, 2)) : null;
     }
 }

@@ -57,6 +57,17 @@ class Customer extends Model
         return 'public_id';
     }
 
+    public function participantServiceCalls()
+    {
+        return $this->belongsToMany(
+            ServiceCall::class,
+            'service_call_participants',
+            'customer_id',
+            'service_call_id'
+        )->withPivot('role')
+            ->withTimestamps();
+    }
+
     private static function generatePublicId(): string
     {
         do {

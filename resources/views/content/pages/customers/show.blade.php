@@ -160,7 +160,7 @@
         </div>
 
         <div class="card-body">
-          @if ($customer->serviceCalls->isEmpty())
+          @if ($serviceCalls->isEmpty())
             <p class="text-muted mb-0">No service call history yet.</p>
           @else
             <div class="table-responsive">
@@ -176,7 +176,7 @@
                 </thead>
 
                 <tbody>
-                  @foreach ($customer->serviceCalls as $call)
+                  @foreach ($serviceCalls as $call)
                     <tr>
                       <td>{{ optional($call->created_at)->format('m/d/Y') }}</td>
 
@@ -215,8 +215,8 @@
 
                         <span class="badge {{ $statusBadgeClass }}"
                           @if ($scheduledTooltip) data-bs-toggle="tooltip"
-                          data-bs-placement="top"
-                          title="{{ $scheduledTooltip }}" @endif>
+                      data-bs-placement="top"
+                      title="{{ $scheduledTooltip }}" @endif>
                           {{ $call->status?->name ?? 'Unknown' }}
                         </span>
                       </td>

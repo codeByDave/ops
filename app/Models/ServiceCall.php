@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\CompanyVehicle;
 
 class ServiceCall extends Model
 {
@@ -49,5 +51,21 @@ class ServiceCall extends Model
     public function serviceType()
     {
         return $this->belongsTo(LookupValue::class, 'service_type_id');
+    }
+
+    public function assignedCompanyVehicle()
+    {
+        return $this->belongsTo(CompanyVehicle::class, 'assigned_company_vehicle_id');
+    }
+
+    public function participants()
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'service_call_participants',
+            'service_call_id',
+            'customer_id'
+        )->withPivot('role')
+            ->withTimestamps();
     }
 }
