@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            LookupSeeder::class,
             CompanySeeder::class,
             LookupTypeSeeder::class,
             LookupValueSeeder::class,
