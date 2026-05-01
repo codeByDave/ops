@@ -367,7 +367,26 @@
 
                   <td>{{ $serviceCall->serviceType?->name ?? '—' }}</td>
 
-                  <td>{{ $serviceCall->customer_name ?? '—' }}</td>
+                  <td>
+                    @php
+                      $primaryCustomerName =
+                          $serviceCall->customer?->company_name ?:
+                          trim(
+                              ($serviceCall->customer?->first_name ?? '') .
+                                  ' ' .
+                                  ($serviceCall->customer?->last_name ?? ''),
+                          );
+
+                      $serviceCustomerName = trim($serviceCall->customer_name ?? '');
+                    @endphp
+
+                    <span>{{ $primaryCustomerName }}</span>
+
+                    @if ($serviceCustomerName && strcasecmp($primaryCustomerName, $serviceCustomerName) !== 0)
+                      <br>
+                      <small class="text-muted">For: {{ $serviceCustomerName }}</small>
+                    @endif
+                  </td>
 
                   <td>{{ $address ?: '—' }}</td>
 
