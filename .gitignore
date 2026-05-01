@@ -7,11 +7,23 @@
 /storage/pail
 /vendor
 
+# macOS
 .DS_Store
+**/.DS_Store
 
+# Env / secrets
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
+/auth.json
+
+# Local files / backups
+*.sql
+*.gz
+*.zip
+*.tar
+*.bak
+
 .phpactor.json
 .phpunit.result.cache
 
@@ -21,7 +33,7 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
-/auth.json
+
 /.fleet
 /.idea
 /.nova
@@ -34,13 +46,6 @@ yarn-error.log
 /public/css
 /public/js
 /public/mix-manifest.json
-# /public/assets/*
-# But not these files...
-# !/public/assets/json
-# /public/assets/json/*
-# !/public/assets/json/search-vertical.json
-# !/public/assets/json/search-horizontal.json
-
 
 # Except for 'template-customizer.js' inside 'resources/assets/vendor/js/'
 !/resources/assets/vendor/js/template-customizer.js
